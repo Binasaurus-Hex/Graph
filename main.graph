@@ -1,0 +1,17 @@
+pow :: (x: int, y: int) {
+    count: int = 0;
+    total := x;
+    if y == 0 {
+        <- 1;
+    }
+    while count < y {
+        total = total * x;
+    }
+    <- total;
+}
+
+main :: (x: int){
+    a := 3;
+    b := 4;
+}
+
