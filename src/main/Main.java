@@ -1,7 +1,11 @@
+package main;
+
 import SyntaxNodes.*;
-import Runtime.VirtualMachine;
+import Bytecode.VirtualMachine;
 
 import java.io.*;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -298,11 +302,11 @@ public class Main {
     static Node parse_statement(Tokenizer tokenizer){
         Token name_or_keyword = tokenizer.peek_token();
         if(name_or_keyword.type == Token.Type.IDENTIFIER){
-            tokenizer.eat_token();
             String name = get_identifier_text(tokenizer.program_text, name_or_keyword);
-            Token next_token = tokenizer.peek_token();
+            Token next_token = tokenizer.peek_token(2);
             if(next_token.type == Token.Type.COLON){
-                tokenizer.eat_token();
+                tokenizer.eat_token(); // name
+                tokenizer.eat_token(); // colon
                 next_token = tokenizer.peek_token();
 
                 String type = "";
@@ -319,24 +323,34 @@ public class Main {
                     // for now only procedure
                     ProcedureDeclaration procedure = new ProcedureDeclaration();
                     procedure.name = name;
+                    procedure.return_type = "";
                     procedure.inputs = parse_variadic(tokenizer,Main::parse_statement, Token.Type.OPEN_PARENTHESIS, Token.Type.COMMA, Token.Type.CLOSE_PARENTHESIS);
+                    if(tokenizer.peek_token().type == Token.Type.FORWARD_ARROW){
+                        tokenizer.eat_token();
+                        if(tokenizer.peek_token().type == Token.Type.IDENTIFIER){
+                            procedure.return_type = get_identifier_text(tokenizer.program_text, tokenizer.eat_token());
+                        }
+                    }
+
                     procedure.block = parse_block(tokenizer);
                     return procedure;
                 }
                 else{
-                    VariableDeclaration variable_decl = new VariableDeclaration();
-                    variable_decl.name = name;
-                    variable_decl.type = type;
 
                     if(tokenizer.peek_token().type == Token.Type.EQUALS){
                         tokenizer.eat_token();
-                        VariableDeclAssign decl_assign = new VariableDeclAssign();
-                        decl_assign.decl = variable_decl;
-                        VariableAssign assign = new VariableAssign();
-                        assign.variable_name = name;
-                        assign.value = parse_expression(tokenizer);
-                        decl_assign.assign = assign;
-                        return decl_assign;
+                        VariableDeclaration declaration = new VariableDeclaration();
+                        declaration.name = name;
+                        declaration.type = type;
+                        declaration.value = parse_expression(tokenizer);
+                        return declaration;
+                    }
+                    else{
+                        VariableDeclaration declaration = new VariableDeclaration();
+                        declaration.name = name;
+                        declaration.type = type;
+                        // uninitialized
+                        return declaration;
                     }
                 }
             }
@@ -394,9 +408,118 @@ public class Main {
         return statements;
     }
 
+    static int generated_name_counter = 0;
+
+    static Node generate_variable_to(Node expression, List<Node> generated_statements, String type){
+        VariableDeclaration declaration = new VariableDeclaration();
+        declaration.name = String.format("generated_ident_%d", generated_name_counter++);
+        declaration.type = type;
+        generated_statements.add(declaration);
+
+        VariableAssign assign = new VariableAssign();
+        assign.variable_name = declaration.name;
+        assign.value = expression;
+        generated_statements.add(assign);
+
+        VariableCall variable_call = new VariableCall();
+        variable_call.name = declaration.name;
+        variable_call.type = declaration.type;
+        return variable_call;
+    }
+
+    static Node flatten_expression(Node expression, List<Node> generated_statements, boolean top_level, String type, Scope scope){
+        if(expression instanceof VariableCall){
+            VariableCall variable_call = (VariableCall)expression;
+            VariableDeclaration declaration = scope.find_variable(variable_call.name);
+            if(declaration == null){
+                System.out.println(String.format("error cant find variable %s", variable_call.name));
+                System.exit(0);
+            }
+            variable_call.type = declaration.type;
+            return variable_call;
+        }
+        if(expression instanceof Literal){
+            if(!top_level){
+                return generate_variable_to(expression, generated_statements, type);
+            }
+            else{
+                return expression;
+            }
+        }
+        if(expression instanceof ProcedureCall){
+            ProcedureCall procedure_call = (ProcedureCall) expression;
+            ProcedureDeclaration procedure_declaration = scope.find_procedure(procedure_call.name);
+            procedure_call.external = procedure_declaration.external;
+
+            for(int i = 0; i < procedure_call.inputs.size(); i++){
+                VariableDeclaration input = (VariableDeclaration) procedure_declaration.inputs.get(i);
+                procedure_call.inputs.set(i, flatten_expression(procedure_call.inputs.get(i), generated_statements, false, input.type, scope));
+            }
+            return procedure_call;
+        }
+        if(expression instanceof BinaryOperator){
+            BinaryOperator operator = (BinaryOperator) expression;
+            operator.left = flatten_expression(operator.left, generated_statements, false, type, scope);
+            operator.right = flatten_expression(operator.right, generated_statements, false, type, scope);
+            if(!top_level){
+                return generate_variable_to(operator, generated_statements, type);
+            }
+        }
+        return expression;
+    }
+
+    static List<Node> flatten(List<Node> input, Scope scope){
+        List<Node> output = new ArrayList<>();
+        for(Node node : input){
+            if(node instanceof ProcedureDeclaration){
+                Scope sub_scope = new Scope();
+                sub_scope.variables = new ArrayList<>();
+                sub_scope.procedures = new ArrayList<>();
+                sub_scope.variables.addAll(scope.variables);
+                sub_scope.procedures.addAll(scope.procedures);
+
+                ProcedureDeclaration procedure = (ProcedureDeclaration)node;
+                for(Node proc_input : procedure.inputs){
+                    VariableDeclaration declaration = (VariableDeclaration) proc_input;
+                    sub_scope.variables.add(declaration);
+                }
+                procedure.block = flatten(procedure.block, sub_scope);
+                output.add(procedure);
+                continue;
+            }
+            if(node instanceof VariableAssign){
+                VariableAssign variable_assign = (VariableAssign)node;
+                VariableDeclaration declaration = scope.find_variable(variable_assign.variable_name);
+                if(declaration == null){
+                    System.out.println(String.format("cant find variable %s", variable_assign.variable_name));
+                    System.exit(0);
+                }
+                variable_assign.value = flatten_expression(variable_assign.value, output, true, declaration.type, scope);
+                output.add(variable_assign);
+                continue;
+            }
+            if(node instanceof VariableDeclaration){
+                VariableDeclaration declaration = (VariableDeclaration) node;
+                scope.variables.add(declaration);
+                output.add(declaration);
+                if(declaration.value != null) {
+                    VariableAssign assign = new VariableAssign();
+                    assign.variable_name = declaration.name;
+                    assign.value = declaration.value;
+                    declaration.value = null;
+                    assign.value = flatten_expression(assign.value, output, true, declaration.type, scope);
+                    output.add(assign);
+                }
+                continue;
+            }
+
+            output.add(flatten_expression(node, output, true, null, scope));
+        }
+        return output;
+    }
+
     public static void main(String[] args) {
         String program_text = read_file_as_text("main.graph");
-        System.out.println();
         List<Token> tokens = tokenize(program_text);
         //print_tokens(tokens, program_text);
 
@@ -404,8 +527,47 @@ public class Main {
         tokenizer.tokens = tokens;
         tokenizer.program_text = program_text;
 
-        List<Node> program = parse_program(tokenizer);
 
+        List<Node> program = parse_program(tokenizer);
+        List<ProcedureDeclaration> procedures = new ArrayList<>();
+
+        // external procedures
+        for(Method method : ExternalProcedures.class.getDeclaredMethods()){
+            ProcedureDeclaration external_procedure = new ProcedureDeclaration();
+            external_procedure.name = method.getName();
+            external_procedure.external = true;
+            external_procedure.inputs = new ArrayList<>();
+            for(Parameter parameter : method.getParameters()){
+                VariableDeclaration declaration = new VariableDeclaration();
+                declaration.name = parameter.getName();
+                declaration.type = parameter.getType().getName();
+                external_procedure.inputs.add(declaration);
+            }
+            procedures.add(external_procedure);
+        }
+
+        List<VariableDeclaration> globals = new ArrayList<>();
+        for(Node node : program){
+            if(node instanceof ProcedureDeclaration){
+                procedures.add((ProcedureDeclaration) node);
+                continue;
+            }
+            if(node instanceof VariableDeclaration){
+                globals.add((VariableDeclaration) node);
+            }
+        }
+
+        Scope global_scope = new Scope();
+        global_scope.procedures = procedures;
+        global_scope.variables = globals;
+
+
+        program = flatten(program, global_scope);
+
+
+        BytecodeGenerator generator = new BytecodeGenerator();
+        BytecodeProgram bytecode = generator.generate_bytecode(program);
         VirtualMachine vm = new VirtualMachine();
+        vm.run(bytecode.code, bytecode.entry_point);
     }
 }

@@ -1,3 +1,5 @@
+package main;
+
 import java.util.List;
 
 public class Tokenizer {
@@ -17,13 +19,17 @@ public class Tokenizer {
     }
 
     Token peek_token(int lookahead){
+        int found_tokens = 0;
         int peek_index = token_index;
         while (peek_index < tokens.size()){
             Token peek_token = tokens.get(peek_index++);
             if(peek_token.is_punctuation()){
                 continue;
             }
-            return peek_token;
+            found_tokens++;
+            if(found_tokens == lookahead){
+                return peek_token;
+            }
         }
         return null;
     }

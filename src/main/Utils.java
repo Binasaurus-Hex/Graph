@@ -1,3 +1,5 @@
+package main;
+
 public class Utils {
 
     public static void print_token_error(Tokenizer tokenizer, String message){

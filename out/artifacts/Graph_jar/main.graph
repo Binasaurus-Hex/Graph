@@ -1,0 +1,11 @@
+add :: (x : float, y : float) {
+    print_float(x + y);
+}
+
+main :: (){
+    x: int[] = {0, 1, 2, 3, 4, 5};
+
+
+    add(3.5,4.);
+}
+
