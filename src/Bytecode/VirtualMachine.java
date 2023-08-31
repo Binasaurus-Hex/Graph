@@ -1,5 +1,6 @@
 package Bytecode;
 
+import jdk.jshell.EvalException;
 import main.ExternalProcedures;
 
 import java.lang.reflect.Field;
@@ -27,6 +28,11 @@ public class VirtualMachine {
                     long size = program[program_counter++];
                     stack_pointer += size;
                 }
+
+                case DEALLOCATE -> {
+                    long size = program[program_counter++];
+                    stack_pointer -= size;
+                }
                 case ASSIGN_LITERAL -> {
                     int to_memory = (int)program[program_counter++];
                     long value = program[program_counter++];
@@ -38,13 +44,22 @@ public class VirtualMachine {
                     long value = stack[base_pointer + from_memory];
                     stack[base_pointer + to_memory] = value;
                 }
-                case ADD, SUBTRACT, MULTIPLY, DIVIDE -> {
+                case ASSIGN_POP -> {
+                    int to_memory = (int)program[program_counter++];
+                    long size = program[program_counter++];
+                    stack[base_pointer + to_memory] = stack[--stack_pointer];
+                }
+
+                case ADD, SUBTRACT, MULTIPLY, DIVIDE, LESS_THAN, GREATER_THAN, EQUALS -> {
                     int storage_location = (int)program[program_counter++];
                     int mem_a = (int)program[program_counter++];
                     int mem_b = (int)program[program_counter++];
                     long a = stack[base_pointer + mem_a];
                     long b = stack[base_pointer + mem_b];
                     long result = switch (instruction){
+                        case LESS_THAN -> a < b ? 1 : 0;
+                        case GREATER_THAN -> a > b ? 1 : 0;
+                        case EQUALS -> a == b ? 1 : 0;
                         case ADD -> a + b;
                         case SUBTRACT -> a - b;
                         case MULTIPLY -> a * b;
@@ -54,13 +69,16 @@ public class VirtualMachine {
                     stack[base_pointer + storage_location] = result;
                 }
 
-                case FLOAT_ADD, FLOAT_SUBTRACT, FLOAT_MULTIPLY, FLOAT_DIVIDE -> {
+                case FLOAT_ADD, FLOAT_SUBTRACT, FLOAT_MULTIPLY, FLOAT_DIVIDE, FLOAT_LESS_THAN, FLOAT_GREATER_THAN, FLOAT_EQUALS -> {
                     int storage_location = (int)program[program_counter++];
                     int mem_a = (int)program[program_counter++];
                     int mem_b = (int)program[program_counter++];
                     float a = Float.intBitsToFloat((int)stack[base_pointer + mem_a]);
                     float b = Float.intBitsToFloat((int)stack[base_pointer + mem_b]);
                     float result = switch (instruction){
+                        case FLOAT_LESS_THAN -> a < b ? 1 : 0;
+                        case FLOAT_GREATER_THAN -> a > b ? 1 : 0;
+                        case FLOAT_EQUALS -> a == b ? 1 : 0;
                         case FLOAT_ADD -> a + b;
                         case FLOAT_SUBTRACT -> a - b;
                         case FLOAT_MULTIPLY -> a * b;
@@ -70,18 +88,45 @@ public class VirtualMachine {
                     stack[base_pointer + storage_location] = Float.floatToIntBits(result);
                 }
 
-                case PUSH_FRAME -> {
-                    stack[stack_pointer++] = program_counter + 2;
+                case RETURN -> {
+                    int inputs_size = (int)program[program_counter++];
+                    stack_pointer = base_pointer;
+                    int previous_base_ptr = (int)stack[--stack_pointer];
+                    int return_location = (int)stack[--stack_pointer];
+                    base_pointer = previous_base_ptr;
+                    program_counter = return_location;
+                    stack_pointer -= inputs_size;
+                }
+
+                case PROCEDURE_HEADER -> {
+                    stack[stack_pointer++] = base_pointer;
                     base_pointer = stack_pointer;
                 }
-                case POP_FRAME -> {
-                    stack_pointer = base_pointer;
-                    program_counter = (int)stack[--stack_pointer];
+
+                case CALL_PROCEDURE -> {
+                    int procedure_location = (int)program[program_counter++];
+                    stack[stack_pointer++] = program_counter; // where to return to
+                    program_counter = procedure_location; // jump to function
                 }
 
                 case JUMP -> {
                     int location = (int)program[program_counter++];
                     program_counter = location;
+                }
+
+                case JUMP_IF -> {
+                    int location = (int)program[program_counter++];
+                    int boolean_address = (int)program[program_counter++];
+                    if(stack[base_pointer + boolean_address] == 1){
+                        program_counter = location;
+                    }
+                }
+                case JUMP_IF_NOT -> {
+                    int location = (int)program[program_counter++];
+                    int boolean_address = (int)program[program_counter++];
+                    if(stack[base_pointer + boolean_address] != 1){
+                        program_counter = location;
+                    }
                 }
 
                 case CALL_EXTERNAL -> {
@@ -113,6 +158,8 @@ public class VirtualMachine {
                     } catch (InvocationTargetException e) {
                         e.printStackTrace();
                     }
+
+                    stack_pointer -= parameters.length; // size assumed 1
                 }
             }
         }

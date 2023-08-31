@@ -6,6 +6,7 @@ import SyntaxNodes.VariableDeclaration;
 import java.util.List;
 
 public class Scope {
+    public ProcedureDeclaration enclosing_procedure = null; // for return statements
     public List<ProcedureDeclaration> procedures;
     public List<VariableDeclaration> variables;
 

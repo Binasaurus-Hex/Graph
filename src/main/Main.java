@@ -323,12 +323,14 @@ public class Main {
                     // for now only procedure
                     ProcedureDeclaration procedure = new ProcedureDeclaration();
                     procedure.name = name;
-                    procedure.return_type = "";
                     procedure.inputs = parse_variadic(tokenizer,Main::parse_statement, Token.Type.OPEN_PARENTHESIS, Token.Type.COMMA, Token.Type.CLOSE_PARENTHESIS);
+                    procedure.outputs = new ArrayList<>();
                     if(tokenizer.peek_token().type == Token.Type.FORWARD_ARROW){
                         tokenizer.eat_token();
-                        if(tokenizer.peek_token().type == Token.Type.IDENTIFIER){
-                            procedure.return_type = get_identifier_text(tokenizer.program_text, tokenizer.eat_token());
+                        while (tokenizer.peek_token().type != Token.Type.OPEN_BRACE){
+                            String output_type = get_identifier_text(tokenizer.program_text, tokenizer.eat_token());
+                            procedure.outputs.add(output_type);
+                            if(tokenizer.peek_token().type != Token.Type.COMMA)break;
                         }
                     }
 
@@ -355,7 +357,8 @@ public class Main {
                 }
             }
             else if(next_token.type == Token.Type.EQUALS){
-                tokenizer.eat_token();
+                tokenizer.eat_token(); // name
+                tokenizer.eat_token(); // =
                 VariableAssign assign = new VariableAssign();
                 assign.variable_name = name;
                 assign.value = parse_expression(tokenizer);
@@ -472,13 +475,15 @@ public class Main {
         List<Node> output = new ArrayList<>();
         for(Node node : input){
             if(node instanceof ProcedureDeclaration){
+                ProcedureDeclaration procedure = (ProcedureDeclaration)node;
+
                 Scope sub_scope = new Scope();
+                sub_scope.enclosing_procedure = procedure;
                 sub_scope.variables = new ArrayList<>();
                 sub_scope.procedures = new ArrayList<>();
                 sub_scope.variables.addAll(scope.variables);
                 sub_scope.procedures.addAll(scope.procedures);
 
-                ProcedureDeclaration procedure = (ProcedureDeclaration)node;
                 for(Node proc_input : procedure.inputs){
                     VariableDeclaration declaration = (VariableDeclaration) proc_input;
                     sub_scope.variables.add(declaration);
@@ -510,6 +515,26 @@ public class Main {
                     assign.value = flatten_expression(assign.value, output, true, declaration.type, scope);
                     output.add(assign);
                 }
+                continue;
+            }
+            if(node instanceof Return){
+                Return return_statement = (Return) node;
+                String type = scope.enclosing_procedure.outputs.get(0);
+                return_statement.value = flatten_expression(return_statement.value, output, false, type, scope);
+                continue;
+            }
+            if(node instanceof If){
+                If if_statement = (If) node;
+                Scope sub_scope = new Scope();
+                sub_scope.enclosing_procedure = scope.enclosing_procedure;
+                sub_scope.variables = new ArrayList<>();
+                sub_scope.procedures = new ArrayList<>();
+                sub_scope.variables.addAll(scope.variables);
+                sub_scope.procedures.addAll(scope.procedures);
+
+                if_statement.condition = flatten_expression(if_statement.condition, output, false, "bool", sub_scope);
+                if_statement.block = flatten(if_statement.block, sub_scope);
+                output.add(if_statement);
                 continue;
             }
 

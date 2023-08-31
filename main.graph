@@ -1,5 +1,16 @@
-main :: (){
+pow :: (value: int, power: int) -> int {
+    if power == 0 {
+        <- 1;
+    }
 
-    print_float(5.1 + 3.1 * 4.1);
+    i: int = 0;
+    total: int = value;
+    while i < power {
+       total = total * value;
+    }
+    <- total;
+}
+
+main :: (){
 }
 

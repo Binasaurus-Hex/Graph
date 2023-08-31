@@ -4,10 +4,7 @@ import Bytecode.InstructionSet;
 import SyntaxNodes.*;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class BytecodeGenerator {
 
@@ -17,6 +14,7 @@ public class BytecodeGenerator {
         Map<String, String> types = new HashMap<>();
         Map<String, Long> locals = new HashMap<>(); // variable name to stack offset
         Map<String, Long> labels = new HashMap<>(); // function name to program index
+        Map<String, ProcedureDeclaration> procedures = new HashMap<>();
     }
 
     class Context {
@@ -47,18 +45,29 @@ public class BytecodeGenerator {
                     entry_point = (int)program_line;
                 }
                 global_scope.labels.put(procedure.name, program_line);
+                global_scope.procedures.put(procedure.name, procedure);
                 Context context = new Context();
-                long input_offset = -1;
+                long input_offset = -2;
                 for(int i = procedure.inputs.size() - 1; i >= 0; i--){
                     VariableDeclaration declaration = (VariableDeclaration) procedure.inputs.get(i);
                     long size = get_size(declaration.type);
                     input_offset -= size;
                     context.scope.locals.put(declaration.name, input_offset);
                 }
+                for(int i = procedure.outputs.size() -1; i >= 0; i--){
+                    String type = procedure.outputs.get(i);
+                    long size = get_size(type);
+                    input_offset -= size;
+                    context.scope.locals.put(String.format("<-%d", procedure.outputs.size() - i - 1), input_offset);
+                }
+
+                bytecode.add(InstructionSet.PROCEDURE_HEADER.code());
                 context.scope.labels.putAll(global_context.scope.labels); // add all the current functions in
+                context.scope.procedures.putAll(global_context.scope.procedures);
                 generate_bytecode(procedure.block, bytecode, context);
                 if(!procedure.name.equals("main")){
-                    bytecode.add(InstructionSet.POP_FRAME.code());
+                    bytecode.add(InstructionSet.RETURN.code());
+                    bytecode.add((long)procedure.inputs.size());
                 }
             }
         }
@@ -133,6 +142,18 @@ public class BytecodeGenerator {
 
                     long code;
                     switch (operator.operation){
+                        case LESS_THAN -> {
+                            if(value_type.equals("int"))code = InstructionSet.LESS_THAN.code();
+                            else code = InstructionSet.FLOAT_LESS_THAN.code();
+                        }
+                        case GREATER_THAN -> {
+                            if(value_type.equals("int"))code = InstructionSet.GREATER_THAN.code();
+                            else code = InstructionSet.FLOAT_GREATER_THAN.code();
+                        }
+                        case EQUALS -> {
+                            if(value_type.equals("int"))code = InstructionSet.EQUALS.code();
+                            else code = InstructionSet.FLOAT_EQUALS.code();
+                        }
                         case ADD -> {
                             if(value_type.equals("int")) code = InstructionSet.ADD.code();
                             else code = InstructionSet.FLOAT_ADD.code();
@@ -157,19 +178,38 @@ public class BytecodeGenerator {
                     bytecode.add(mem_a);
                     bytecode.add(mem_b);
                 }
+                else if(assign.value instanceof ProcedureCall){
+                    generate_bytecode(Collections.singletonList(assign.value), bytecode, context);
+                    bytecode.add(InstructionSet.ASSIGN_POP.code());
+                    context.stack_offset -= get_size(type);
+                    bytecode.add(memory_address);
+                    bytecode.add(get_size(type));
+                }
             }
 
             if(node instanceof ProcedureCall){
                 ProcedureCall call = (ProcedureCall)node;
+
+                if(!call.external){
+                    ProcedureDeclaration procedure = context.scope.procedures.get(call.name);
+                    for(String output : procedure.outputs){
+                        long size = get_size(output);
+                        bytecode.add(InstructionSet.ALLOCATE.code());
+                        bytecode.add(size);
+                        context.stack_offset += size;
+                    }
+                }
+
+                long offset = context.stack_offset;
                 for(Node input : call.inputs){
                     VariableCall variable_call = (VariableCall) input; // assumed
 
                     // copy inputs
-                    long memory_location = context.stack_offset;
+                    long memory_location = offset;
                     long size = get_size(variable_call.type);
                     bytecode.add(InstructionSet.ALLOCATE.code());
                     bytecode.add(size);
-                    context.stack_offset += size;
+                    offset += size;
 
                     bytecode.add(InstructionSet.ASSIGN_MEMORY.code());
                     bytecode.add(memory_location);
@@ -181,11 +221,25 @@ public class BytecodeGenerator {
                     bytecode.add(externals.get(call.name));
                 }
                 else{
-                    bytecode.add(InstructionSet.PUSH_FRAME.code());
+                    bytecode.add(InstructionSet.CALL_PROCEDURE.code());
                     long procedure_location = context.scope.labels.get(call.name);
-                    bytecode.add(InstructionSet.JUMP.code());
                     bytecode.add(procedure_location);
                 }
+            }
+
+            if(node instanceof If){
+                If if_statement = (If) node;
+                VariableCall var_call = (VariableCall) if_statement.condition;
+                bytecode.add(InstructionSet.JUMP_IF_NOT.code());
+            }
+
+            if(node instanceof Return){
+                Return return_statement = (Return) node;
+                VariableCall value = (VariableCall) return_statement.value;
+                bytecode.add(InstructionSet.ASSIGN_MEMORY.code());
+                long return_location = context.scope.locals.get("<-0");
+                bytecode.add(return_location);
+                bytecode.add(context.scope.locals.get(value.name));
             }
         }
     }
