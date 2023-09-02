@@ -1,11 +1,26 @@
-main :: (){
+pow :: (value: int, power: int) -> int {
+    if power == 0 {
+        <- 1;
+    }
+    if power == 1 {
+        <- value;
+    }
 
     counter := 0;
-    x := 2.;
-    one := 1;
-    while counter < 10000000 {
-        counter = counter + one;
+    total := value;
+    while counter < power - 1 {
+        total = total * value;
+        counter = counter + 1;
     }
-    print_float(x);
+    <- total;
+}
+
+main :: (){
+    counter := 0;
+
+    while counter < 50 {
+        print(pow(2, counter));
+        counter = counter + 1;
+    }
 }
 

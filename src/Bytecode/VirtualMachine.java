@@ -44,10 +44,16 @@ public class VirtualMachine {
                     long value = stack[base_pointer + from_memory];
                     stack[base_pointer + to_memory] = value;
                 }
+
+                case PUSH_MEMORY -> {
+                    int memory_address = (int)program[program_counter++];
+                    long value = stack[base_pointer + memory_address];
+                    stack[stack_pointer++] = value;
+                }
+
                 case ASSIGN_POP -> {
-                    int to_memory = (int)program[program_counter++];
-                    long size = program[program_counter++];
-                    stack[base_pointer + to_memory] = stack[--stack_pointer];
+                    int memory_address = (int)program[program_counter++];
+                    stack[base_pointer + memory_address] = stack[--stack_pointer];
                 }
 
                 case ADD, SUBTRACT, MULTIPLY, DIVIDE, LESS_THAN, GREATER_THAN, EQUALS -> {
@@ -151,8 +157,11 @@ public class VirtualMachine {
                             case "int"->{
                                 args[i] = (int)value;
                             }
+                            case "long"->{
+                                args[i] = value;
+                            }
                             case "float"->{
-                                args[i] = Float.intBitsToFloat((int)value);
+                                args[i] = Double.longBitsToDouble(value);
                             }
                         }
                     }

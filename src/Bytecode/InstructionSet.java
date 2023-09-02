@@ -33,7 +33,9 @@ public enum InstructionSet {
     DEALLOCATE,
     ASSIGN_LITERAL,
     ASSIGN_MEMORY,
-    ASSIGN_POP;
+    ASSIGN_POP,
+
+    PUSH_MEMORY;
 
     public long code(){
         return (long)ordinal();

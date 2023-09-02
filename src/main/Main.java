@@ -488,6 +488,9 @@ public class Main {
                 VariableDeclaration input = (VariableDeclaration) procedure_declaration.inputs.get(i);
                 procedure_call.inputs.set(i, flatten_expression(procedure_call.inputs.get(i), generated_statements, false, input.type, scope));
             }
+            if(!top_level){
+                return generate_variable_to(procedure_call, generated_statements, type);
+            }
             return procedure_call;
         }
         if(expression instanceof BinaryOperator){
@@ -565,8 +568,9 @@ public class Main {
             }
             if(node instanceof Return){
                 Return return_statement = (Return) node;
-                String type = scope.enclosing_procedure.outputs.get(0);
-                return_statement.value = flatten_expression(return_statement.value, output, false, type, scope);
+                return_statement.type = scope.enclosing_procedure.outputs.get(0);
+                return_statement.value = flatten_expression(return_statement.value, output, false, return_statement.type, scope);
+                output.add(return_statement);
                 continue;
             }
             if(node instanceof If){
