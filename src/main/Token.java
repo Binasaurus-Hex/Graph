@@ -16,6 +16,8 @@ public class Token {
         IS("is"),
         IF("if"),
         ELSE("else"),
+        TRUE("true"),
+        FALSE("false"),
 
         // punctuation
         OPEN_BRACE("{"),

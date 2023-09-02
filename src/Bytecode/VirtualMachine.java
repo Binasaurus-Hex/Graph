@@ -85,7 +85,12 @@ public class VirtualMachine {
                         case FLOAT_DIVIDE -> a / b;
                         default -> 0;
                     };
-                    stack[base_pointer + storage_location] = Float.floatToIntBits(result);
+
+                    boolean comparison = switch (instruction){
+                        case FLOAT_LESS_THAN, FLOAT_GREATER_THAN, FLOAT_EQUALS -> true;
+                        default -> false;
+                    };
+                    stack[base_pointer + storage_location] = (!comparison)? Float.floatToIntBits(result) : (long)result;
                 }
 
                 case RETURN -> {

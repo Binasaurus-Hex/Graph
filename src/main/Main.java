@@ -9,6 +9,7 @@ import java.lang.reflect.Parameter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Main {
@@ -181,6 +182,14 @@ public class Main {
                 Token string_token = tokenizer.eat_token();
                 return new Literal<String>(get_string_text(tokenizer.program_text, string_token));
             }
+            case TRUE -> {
+                tokenizer.eat_token();
+                return new Literal<Boolean>(true);
+            }
+            case FALSE -> {
+                tokenizer.eat_token();
+                return new Literal<Boolean>(false);
+            }
             case OPEN_PARENTHESIS -> {
                 tokenizer.eat_token();
                 Node expression = parse_expression(tokenizer);
@@ -309,7 +318,7 @@ public class Main {
                 tokenizer.eat_token(); // colon
                 next_token = tokenizer.peek_token();
 
-                String type = "";
+                String type = null;
                 // parse type
                 if(next_token.type == Token.Type.IDENTIFIER){
                     type = get_identifier_text(tokenizer.program_text, next_token);
@@ -411,12 +420,33 @@ public class Main {
         return statements;
     }
 
+    static String get_type(Literal literal){
+        if(literal.value instanceof Float){
+            return "float";
+        }
+        if(literal.value instanceof Integer){
+            return "int";
+        }
+        if(literal.value instanceof String){
+            return "string";
+        }
+        if(literal.value instanceof Boolean){
+            return "bool";
+        }
+        return null;
+    }
+
     static int generated_name_counter = 0;
 
     static Node generate_variable_to(Node expression, List<Node> generated_statements, String type){
         VariableDeclaration declaration = new VariableDeclaration();
         declaration.name = String.format("generated_ident_%d", generated_name_counter++);
         declaration.type = type;
+
+        if(type == null && expression instanceof Literal){
+            declaration.type = get_type((Literal)expression);
+        }
+
         generated_statements.add(declaration);
 
         VariableAssign assign = new VariableAssign();
@@ -465,6 +495,13 @@ public class Main {
             operator.left = flatten_expression(operator.left, generated_statements, false, type, scope);
             operator.right = flatten_expression(operator.right, generated_statements, false, type, scope);
             if(!top_level){
+                if(operator.operation.is_comparison()){
+                    type = "bool";
+                }
+                if(type == null){
+                    VariableCall left = (VariableCall)operator.left;
+                    type = left.type;
+                }
                 return generate_variable_to(operator, generated_statements, type);
             }
         }
@@ -513,6 +550,15 @@ public class Main {
                     assign.value = declaration.value;
                     declaration.value = null;
                     assign.value = flatten_expression(assign.value, output, true, declaration.type, scope);
+                    if(declaration.type == null){
+                        if(assign.value instanceof Literal){
+                            declaration.type = get_type((Literal) assign.value);
+                        }
+                        if(assign.value instanceof VariableCall){
+                            VariableCall call = (VariableCall)assign.value;
+                            declaration.type = call.type;
+                        }
+                    }
                     output.add(assign);
                 }
                 continue;
@@ -532,9 +578,23 @@ public class Main {
                 sub_scope.variables.addAll(scope.variables);
                 sub_scope.procedures.addAll(scope.procedures);
 
-                if_statement.condition = flatten_expression(if_statement.condition, output, false, "bool", sub_scope);
+                if_statement.condition = flatten_expression(if_statement.condition, output, false, null, sub_scope);
                 if_statement.block = flatten(if_statement.block, sub_scope);
                 output.add(if_statement);
+                continue;
+            }
+            if(node instanceof While){
+                While while_statement = (While) node;
+                Scope sub_scope = new Scope();
+                sub_scope.enclosing_procedure = scope.enclosing_procedure;
+                sub_scope.variables = new ArrayList<>();
+                sub_scope.procedures = new ArrayList<>();
+                sub_scope.variables.addAll(scope.variables);
+                sub_scope.procedures.addAll(scope.procedures);
+
+                while_statement.condition = flatten_expression(while_statement.condition, while_statement.condition_block, false, null, sub_scope);
+                while_statement.block = flatten(while_statement.block, sub_scope);
+                output.add(while_statement);
                 continue;
             }
 
@@ -593,6 +653,8 @@ public class Main {
         BytecodeGenerator generator = new BytecodeGenerator();
         BytecodeProgram bytecode = generator.generate_bytecode(program);
         VirtualMachine vm = new VirtualMachine();
+
+        System.out.println("start");
         vm.run(bytecode.code, bytecode.entry_point);
     }
 }

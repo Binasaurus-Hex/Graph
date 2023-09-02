@@ -84,6 +84,9 @@ public class BytecodeGenerator {
     }
 
     long get_size(String type){
+        if(type == null){
+            System.out.println("");
+        }
         switch (type){
             case "int":
             case "float":
@@ -118,6 +121,10 @@ public class BytecodeGenerator {
                     else if(type.equals("int")){
                         Literal<Integer> int_literal = (Literal<Integer>) assign.value;
                         value = int_literal.value;
+                    }
+                    else if(type.equals("bool")){
+                        Literal<Boolean> bool_literal = (Literal<Boolean>) assign.value;
+                        value = bool_literal.value? 1 : 0;
                     }
 
                     bytecode.add(InstructionSet.ASSIGN_LITERAL.code());
@@ -231,6 +238,48 @@ public class BytecodeGenerator {
                 If if_statement = (If) node;
                 VariableCall var_call = (VariableCall) if_statement.condition;
                 bytecode.add(InstructionSet.JUMP_IF_NOT.code());
+
+                List<Long> block_bytecode = new ArrayList<>();
+                generate_bytecode(if_statement.block, block_bytecode, context);
+
+                bytecode.add((long)(bytecode.size() + block_bytecode.size() + 2));
+                bytecode.add(context.scope.locals.get(var_call.name));
+                bytecode.addAll(block_bytecode);
+            }
+
+            if(node instanceof While){
+                While while_statement = (While) node;
+
+                List<Long> block_bytecode = new ArrayList<>();
+                generate_bytecode(while_statement.block, block_bytecode, context);
+                long condition_location = bytecode.size() + block_bytecode.size() + 2;
+                bytecode.add(InstructionSet.JUMP.code());
+                bytecode.add(condition_location);
+
+                long block = bytecode.size();
+
+                bytecode.addAll(block_bytecode);
+
+                List<Long> condition = new ArrayList<>();
+                generate_bytecode(while_statement.condition_block, condition, context);
+                bytecode.addAll(condition);
+                bytecode.add(InstructionSet.JUMP_IF.code());
+                bytecode.add(block);
+                VariableCall condition_var = (VariableCall) while_statement.condition;
+                bytecode.add(context.scope.locals.get(condition_var.name));
+
+                /*
+
+                jmp :condition
+ block :        z = x + 2
+                print(z)
+ condition :    x = 3           <-|
+                y = 4             |
+                cmp x < y       <-|
+                if eq jmp :block
+  while end     ...
+                 */
+
             }
 
             if(node instanceof Return){
