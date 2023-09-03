@@ -71,13 +71,21 @@ public class VirtualMachine {
 
                 case ASSIGN_ARRAY_INDEX -> {
                     int memory_address = (int)program[program_counter++];
-                    int pointer_address = (int)program[program_counter++];
-                    int pointer = (int)stack[base_pointer+pointer_address];
+                    int array_address = base_pointer + (int)program[program_counter++];
 
                     int offset_address = (int)program[program_counter++];
                     int offset = (int)stack[base_pointer + offset_address];
-                    pointer += offset;
-                    stack[base_pointer + memory_address] = stack[pointer];
+                    array_address += offset;
+                    stack[base_pointer + memory_address] = stack[array_address];
+                }
+
+                case ARRAY_ASSIGN -> {
+                    int array_address = (int)program[program_counter++];
+                    int index_address = (int)program[program_counter++];
+                    int value_address = (int)program[program_counter++];
+
+                    int index = (int)stack[base_pointer + index_address];
+                    stack[base_pointer + array_address + index] = stack[base_pointer + value_address];
                 }
 
                 case ADD, SUBTRACT, MULTIPLY, DIVIDE, LESS_THAN, GREATER_THAN, EQUALS -> {
@@ -184,7 +192,7 @@ public class VirtualMachine {
                             case "long"->{
                                 args[i] = value;
                             }
-                            case "float"->{
+                            case "double"->{
                                 args[i] = Double.longBitsToDouble(value);
                             }
                         }

@@ -38,6 +38,7 @@ public enum InstructionSet {
     ASSIGN_DEREFERENCE,
     ASSIGN_ARRAY_INDEX,
 
+    ARRAY_ASSIGN,
     PUSH_MEMORY;
 
     public long code(){

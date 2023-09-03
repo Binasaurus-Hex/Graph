@@ -338,6 +338,46 @@ public class Main {
         return statements;
     }
 
+    static Node parse_type(Tokenizer tokenizer){
+        switch (tokenizer.peek_token().type){
+            case OPEN_BRACKET -> {
+                tokenizer.eat_token();
+
+                if(tokenizer.peek_token().type != Token.Type.INTEGER){
+                    Utils.print_token_error(tokenizer, "missing array size specifier");
+                }
+                int value = get_integer_value(tokenizer.program_text, tokenizer.eat_token());
+                ArrayType array = new ArrayType();
+                array.size = value;
+
+                if(tokenizer.peek_token().type != Token.Type.CLOSE_BRACKET){
+                    Utils.print_token_error(tokenizer, "missing closing bracket on type");
+                }
+                tokenizer.eat_token();
+                array.type = parse_type(tokenizer);
+                return array;
+            }
+            case IDENTIFIER -> {
+                LiteralType literal = new LiteralType();
+                String text = get_identifier_text(tokenizer.program_text, tokenizer.eat_token());
+                switch (text){
+                    case "float" -> literal.type = LiteralType.Type.FLOAT;
+                    case "int" -> literal.type = LiteralType.Type.INT;
+                    case "bool" -> literal.type = LiteralType.Type.BOOL;
+                }
+                return literal;
+            }
+            case STAR -> {
+                // pointer
+                tokenizer.eat_token();
+                PointerType pointer = new PointerType();
+                pointer.type = parse_type(tokenizer);
+                return pointer;
+            }
+        }
+        return null;
+    }
+
     static Node parse_statement(Tokenizer tokenizer){
         Token name_or_keyword = tokenizer.peek_token();
         if(name_or_keyword.type == Token.Type.IDENTIFIER){
@@ -348,13 +388,7 @@ public class Main {
                 tokenizer.eat_token(); // colon
                 next_token = tokenizer.peek_token();
 
-                String type = null;
-                // parse type
-                if(next_token.type == Token.Type.IDENTIFIER){
-                    type = get_identifier_text(tokenizer.program_text, next_token);
-                    tokenizer.eat_token();
-                    next_token = tokenizer.peek_token();
-                }
+                Node type = parse_type(tokenizer);
 
                 if(next_token.type == Token.Type.COLON){
                     tokenizer.eat_token();
@@ -367,7 +401,11 @@ public class Main {
                     if(tokenizer.peek_token().type == Token.Type.FORWARD_ARROW){
                         tokenizer.eat_token();
                         while (tokenizer.peek_token().type != Token.Type.OPEN_BRACE){
-                            String output_type = get_identifier_text(tokenizer.program_text, tokenizer.eat_token());
+                            // PARSE TYPE
+                            Node output_type = parse_type(tokenizer);
+                            if(output_type == null){
+                                Utils.print_token_error(tokenizer, "unknown type definition");
+                            }
                             procedure.outputs.add(output_type);
                             if(tokenizer.peek_token().type != Token.Type.COMMA)break;
                         }
@@ -403,8 +441,29 @@ public class Main {
                 assign.value = parse_expression(tokenizer);
                 return assign;
             }
+            else if(next_token.type == Token.Type.OPEN_BRACKET){
+                Node left = parse_expression(tokenizer);
+                if(!(left instanceof BinaryOperator)){
+                    Utils.print_token_error(tokenizer, "invalid array access");
+                }
+
+                BinaryOperator index = (BinaryOperator) left;
+
+                if(tokenizer.peek_token().type != Token.Type.EQUALS){
+                    Utils.print_token_error(tokenizer, "no assignment for array");
+                }
+                tokenizer.eat_token();
+                Node value = parse_expression(tokenizer);
+
+                ArrayAssign array_assign = new ArrayAssign();
+                array_assign.array = index.left;
+                array_assign.index = index.right;
+                array_assign.value = value;
+                return array_assign;
+            }
             else{
-                return parse_expression(tokenizer);
+                Node expression = parse_expression(tokenizer);
+                return expression;
             }
         }
         else if (name_or_keyword.is_keyword()){
@@ -450,25 +509,23 @@ public class Main {
         return statements;
     }
 
-    static String get_type(Literal literal){
+    static LiteralType get_type(Literal literal){
+        LiteralType literal_type = new LiteralType();
         if(literal.value instanceof Double){
-            return "float";
+            literal_type.type = LiteralType.Type.FLOAT;
         }
         if(literal.value instanceof Integer){
-            return "int";
-        }
-        if(literal.value instanceof String){
-            return "string";
+            literal_type.type = LiteralType.Type.INT;
         }
         if(literal.value instanceof Boolean){
-            return "bool";
+            literal_type.type = LiteralType.Type.BOOL;
         }
-        return null;
+        return literal_type;
     }
 
     static int generated_name_counter = 0;
 
-    static Node generate_variable_to(Node expression, List<Node> generated_statements, String type){
+    static Node generate_variable_to(Node expression, List<Node> generated_statements, Node type){
         VariableDeclaration declaration = new VariableDeclaration();
         declaration.name = String.format("generated_ident_%d", generated_name_counter++);
         declaration.type = type;
@@ -490,7 +547,7 @@ public class Main {
         return variable_call;
     }
 
-    static Node flatten_expression(Node expression, List<Node> generated_statements, boolean top_level, String type, Scope scope){
+    static Node flatten_expression(Node expression, List<Node> generated_statements, boolean top_level, Node type, Scope scope){
         if(expression instanceof VariableCall){
             VariableCall variable_call = (VariableCall)expression;
             VariableDeclaration declaration = scope.find_variable(variable_call.name);
@@ -529,7 +586,9 @@ public class Main {
             operator.right = flatten_expression(operator.right, generated_statements, false, type, scope);
             if(!top_level){
                 if(operator.operation.is_comparison()){
-                    type = "bool";
+                    LiteralType literal_type = new LiteralType();
+                    literal_type.type = LiteralType.Type.BOOL;
+                    type = literal_type;
                 }
                 if(type == null){
                     VariableCall left = (VariableCall)operator.left;
@@ -579,6 +638,16 @@ public class Main {
                 }
                 variable_assign.value = flatten_expression(variable_assign.value, output, true, declaration.type, scope);
                 output.add(variable_assign);
+                continue;
+            }
+            if(node instanceof ArrayAssign){
+                ArrayAssign array_assign = (ArrayAssign) node;
+                VariableCall array_variable = (VariableCall)array_assign.array;
+                VariableDeclaration array = scope.find_variable(array_variable.name);
+                Node array_type = ((ArrayType)array.type).type;
+                array_assign.index = flatten_expression(array_assign.index, output, false, LiteralType.INT(), scope);
+                array_assign.value = flatten_expression(array_assign.value, output, false, array_type, scope);
+                output.add(array_assign);
                 continue;
             }
             if(node instanceof VariableDeclaration){
@@ -645,12 +714,15 @@ public class Main {
         return output;
     }
 
-    static String convert_java_type(String java_type){
-        return switch (java_type){
-            case "long" -> "int";
-            case "double" -> "float";
-            default -> java_type;
+    static Node convert_java_type(String java_type){
+        LiteralType literal_type = new LiteralType();
+
+        literal_type.type = switch (java_type){
+            case "long" -> LiteralType.Type.INT;
+            case "double" -> LiteralType.Type.FLOAT;
+            default -> null;
         };
+        return literal_type;
     }
 
     public static void main(String[] args) {

@@ -3,6 +3,7 @@ package main;
 import Bytecode.InstructionSet;
 import SyntaxNodes.*;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -11,7 +12,7 @@ public class BytecodeGenerator {
     Map<String, Long> externals = new HashMap<>();
 
     class Scope {
-        Map<String, String> types = new HashMap<>();
+        Map<String, Node> types = new HashMap<>();
         Map<String, Long> locals = new HashMap<>(); // variable name to stack offset
         Map<String, Long> labels = new HashMap<>(); // function name to program index
         Map<String, ProcedureDeclaration> procedures = new HashMap<>();
@@ -55,7 +56,7 @@ public class BytecodeGenerator {
                     context.scope.locals.put(declaration.name, input_offset);
                 }
                 for(int i = procedure.outputs.size() -1; i >= 0; i--){
-                    String type = procedure.outputs.get(i);
+                    Node type = procedure.outputs.get(i);
                     long size = get_size(type);
                     input_offset -= size;
                     context.scope.locals.put(String.format("<-%d", procedure.outputs.size() - i - 1), input_offset);
@@ -90,16 +91,15 @@ public class BytecodeGenerator {
         return bytecode_program;
     }
 
-    long get_size(String type){
-        if(type == null){
-            System.out.println("");
+    long get_size(Node type){
+        if(type instanceof LiteralType){
+            return 1;
         }
-        switch (type){
-            case "int":
-            case "float":
-                return 1;
+        if(type instanceof ArrayType){
+            ArrayType array = (ArrayType) type;
+            return array.size;
         }
-        return -1; // error
+        return -1;
     }
 
     void generate_bytecode(List<Node> program, List<Long> bytecode, Context context){
@@ -112,24 +112,46 @@ public class BytecodeGenerator {
                 context.scope.locals.put(declaration.name, memory_address);
                 context.scope.types.put(declaration.name, declaration.type);
             }
+            if(node instanceof ArrayAssign){
+                ArrayAssign assign = (ArrayAssign) node;
+                VariableCall array = (VariableCall)assign.array;
+                long array_address = context.scope.locals.get(array.name);
+
+                VariableCall index = (VariableCall)assign.index;
+                long index_address = context.scope.locals.get(index.name);
+
+                VariableCall value = (VariableCall)assign.value;
+                long value_address = context.scope.locals.get(value.name);
+
+                bytecode.add(InstructionSet.ARRAY_ASSIGN.code());
+                bytecode.add(array_address);
+                bytecode.add(index_address);
+                bytecode.add(value_address);
+            }
             if(node instanceof VariableAssign){
+
                 VariableAssign assign = (VariableAssign) node;
-                String type = context.scope.types.get(assign.variable_name);
+                Node type = context.scope.types.get(assign.variable_name);
                 long memory_address = context.scope.locals.get(assign.variable_name);
 
                 if(assign.value instanceof Literal){
                     long value = 0;
-                    if(type.equals("float")){
-                        Literal<Double> float_literal = (Literal<Double>) assign.value;
-                        value = Double.doubleToLongBits(float_literal.value);
-                    }
-                    else if(type.equals("int")){
-                        Literal<Integer> int_literal = (Literal<Integer>) assign.value;
-                        value = int_literal.value;
-                    }
-                    else if(type.equals("bool")){
-                        Literal<Boolean> bool_literal = (Literal<Boolean>) assign.value;
-                        value = bool_literal.value? 1 : 0;
+                    if(type instanceof LiteralType){
+                        LiteralType literal_type = (LiteralType)type;
+                        switch (literal_type.type){
+                            case INT -> {
+                                Literal<Integer> int_literal = (Literal<Integer>) assign.value;
+                                value = int_literal.value;
+                            }
+                            case FLOAT -> {
+                                Literal<Double> float_literal = (Literal<Double>) assign.value;
+                                value = Double.doubleToLongBits(float_literal.value);
+                            }
+                            case BOOL -> {
+                                Literal<Boolean> bool_literal = (Literal<Boolean>) assign.value;
+                                value = bool_literal.value? 1 : 0;
+                            }
+                        }
                     }
 
                     bytecode.add(InstructionSet.ASSIGN_LITERAL.code());
@@ -147,7 +169,12 @@ public class BytecodeGenerator {
                     VariableCall a = (VariableCall)operator.left;
                     VariableCall b = (VariableCall)operator.right;
 
-                    String value_type = a.type; // assumed to be the same type
+                    Node value_type = a.type; // assumed to be the same type
+
+                    LiteralType literal_value_type = null;
+                    if(value_type instanceof LiteralType){
+                        literal_value_type = (LiteralType) value_type;
+                    }
 
                     long mem_a = context.scope.locals.get(a.name);
                     long mem_b = context.scope.locals.get(b.name);
@@ -155,31 +182,31 @@ public class BytecodeGenerator {
                     long code;
                     switch (operator.operation){
                         case LESS_THAN -> {
-                            if(value_type.equals("int"))code = InstructionSet.LESS_THAN.code();
+                            if(literal_value_type.type == LiteralType.Type.INT)code = InstructionSet.LESS_THAN.code();
                             else code = InstructionSet.FLOAT_LESS_THAN.code();
                         }
                         case GREATER_THAN -> {
-                            if(value_type.equals("int"))code = InstructionSet.GREATER_THAN.code();
+                            if(literal_value_type.type == LiteralType.Type.INT)code = InstructionSet.GREATER_THAN.code();
                             else code = InstructionSet.FLOAT_GREATER_THAN.code();
                         }
                         case EQUALS -> {
-                            if(value_type.equals("int"))code = InstructionSet.EQUALS.code();
+                            if(literal_value_type.type == LiteralType.Type.INT)code = InstructionSet.EQUALS.code();
                             else code = InstructionSet.FLOAT_EQUALS.code();
                         }
                         case ADD -> {
-                            if(value_type.equals("int")) code = InstructionSet.ADD.code();
+                            if(literal_value_type.type == LiteralType.Type.INT) code = InstructionSet.ADD.code();
                             else code = InstructionSet.FLOAT_ADD.code();
                         }
                         case SUBTRACT -> {
-                            if(value_type.equals("int")) code = InstructionSet.SUBTRACT.code();
+                            if(literal_value_type.type == LiteralType.Type.INT) code = InstructionSet.SUBTRACT.code();
                             else code = InstructionSet.FLOAT_SUBTRACT.code();
                         }
                         case MULTIPLY -> {
-                            if(value_type.equals("int")) code = InstructionSet.MULTIPLY.code();
+                            if(literal_value_type.type == LiteralType.Type.INT) code = InstructionSet.MULTIPLY.code();
                             else code = InstructionSet.FLOAT_MULTIPLY.code();
                         }
                         case DIVIDE -> {
-                            if(value_type.equals("int")) code = InstructionSet.DIVIDE.code();
+                            if(literal_value_type.type == LiteralType.Type.INT) code = InstructionSet.DIVIDE.code();
                             else code = InstructionSet.FLOAT_DIVIDE.code();
                         }
                         case INDEX -> {
@@ -222,7 +249,7 @@ public class BytecodeGenerator {
 
                 if(!call.external){
                     ProcedureDeclaration procedure = context.scope.procedures.get(call.name);
-                    for(String output : procedure.outputs){
+                    for(Node output : procedure.outputs){
                         long size = get_size(output);
                         bytecode.add(InstructionSet.ALLOCATE.code());
                         bytecode.add(size);

@@ -1,29 +1,17 @@
-pow :: (value: int, power: int) -> int {
-    if power == 0 {
-        <- 1;
-    }
-    if power == 1 {
-        <- value;
-    }
-
-    counter := 0;
-    total := value;
-    while counter < power - 1 {
-        total = total * value;
-        counter = counter + 1;
-    }
-    <- total;
-}
-
-
 main :: (){
-    x0 := 2;
-    x1 := 4;
-    x2 := 6;
-    x3 := 8;
+    heights: [10]float;
 
-    ptr: int = &x0;
+    i := 0;
+    j := 0.;
+    while i < 10 {
+        heights[i] = j + 1.;
+        i = i + 1;
+        j = j + 1.;
+    }
 
-    print(ptr[3]);
+    i = 0;
+    while i < 10 {
+        print_float(heights[i]);
+        i = i + 1;
+    }
 }
-
