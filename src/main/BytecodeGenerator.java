@@ -120,8 +120,8 @@ public class BytecodeGenerator {
                 if(assign.value instanceof Literal){
                     long value = 0;
                     if(type.equals("float")){
-                        Literal<Float> float_literal = (Literal<Float>) assign.value;
-                        value = Float.floatToIntBits(float_literal.value);
+                        Literal<Double> float_literal = (Literal<Double>) assign.value;
+                        value = Double.doubleToLongBits(float_literal.value);
                     }
                     else if(type.equals("int")){
                         Literal<Integer> int_literal = (Literal<Integer>) assign.value;
@@ -182,6 +182,9 @@ public class BytecodeGenerator {
                             if(value_type.equals("int")) code = InstructionSet.DIVIDE.code();
                             else code = InstructionSet.FLOAT_DIVIDE.code();
                         }
+                        case INDEX -> {
+                            code = InstructionSet.ASSIGN_ARRAY_INDEX.code();
+                        }
                         default -> code = -1;
                     };
 
@@ -190,6 +193,23 @@ public class BytecodeGenerator {
                     bytecode.add(mem_a);
                     bytecode.add(mem_b);
                 }
+                else if(assign.value instanceof UnaryOperator){
+                    UnaryOperator operator = (UnaryOperator) assign.value;
+                    VariableCall variable = (VariableCall) operator.node;
+                    switch (operator.operation){
+                        case REFERENCE -> {
+                            bytecode.add(InstructionSet.ASSIGN_ADDRESS.code());
+                            bytecode.add(memory_address);
+                            bytecode.add(context.scope.locals.get(variable.name));
+                        }
+                        case DEREFERENCE -> {
+                            bytecode.add(InstructionSet.ASSIGN_DEREFERENCE.code());
+                            bytecode.add(memory_address);
+                            bytecode.add(context.scope.locals.get(variable.name));
+                        }
+                    }
+                }
+
                 else if(assign.value instanceof ProcedureCall){
                     generate_bytecode(Collections.singletonList(assign.value), bytecode, context);
                     bytecode.add(InstructionSet.ASSIGN_POP.code());

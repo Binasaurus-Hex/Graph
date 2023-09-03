@@ -20,6 +20,8 @@ public class Token {
         FALSE("false"),
 
         // punctuation
+        OPEN_BRACKET("["),
+        CLOSE_BRACKET("]"),
         OPEN_BRACE("{"),
         CLOSE_BRACE("}"),
         OPEN_PARENTHESIS("("),
@@ -34,6 +36,8 @@ public class Token {
         DOUBLE_EQUALS("=="),
         EQUALS("="),
         COMMA(","),
+
+        ADDRESS("&"),
 
         MINUS("-"),
         PLUS("+"),
@@ -81,6 +85,13 @@ public class Token {
     boolean is_binary_operator(){
         return switch (type){
             case MINUS,PLUS,FORWARD_SLASH,STAR,DOUBLE_EQUALS,LESS_THAN,GREATER_THAN-> true;
+            default -> false;
+        };
+    }
+
+    boolean is_unary_operator(){
+        return switch (type) {
+            case STAR, ADDRESS -> true;
             default -> false;
         };
     }

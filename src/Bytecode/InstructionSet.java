@@ -34,6 +34,9 @@ public enum InstructionSet {
     ASSIGN_LITERAL,
     ASSIGN_MEMORY,
     ASSIGN_POP,
+    ASSIGN_ADDRESS,
+    ASSIGN_DEREFERENCE,
+    ASSIGN_ARRAY_INDEX,
 
     PUSH_MEMORY;
 

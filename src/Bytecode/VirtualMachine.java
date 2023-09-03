@@ -56,6 +56,30 @@ public class VirtualMachine {
                     stack[base_pointer + memory_address] = stack[--stack_pointer];
                 }
 
+                case ASSIGN_ADDRESS -> {
+                    int memory_address = (int)program[program_counter++];
+                    int variable = (int)program[program_counter++];
+                    stack[base_pointer + memory_address] = base_pointer + variable;
+                }
+
+                case ASSIGN_DEREFERENCE -> {
+                    int memory_address = (int)program[program_counter++];
+                    int pointer = (int)program[program_counter++];
+                    int value_address = (int)stack[base_pointer + pointer];
+                    stack[base_pointer + memory_address] = stack[value_address];
+                }
+
+                case ASSIGN_ARRAY_INDEX -> {
+                    int memory_address = (int)program[program_counter++];
+                    int pointer_address = (int)program[program_counter++];
+                    int pointer = (int)stack[base_pointer+pointer_address];
+
+                    int offset_address = (int)program[program_counter++];
+                    int offset = (int)stack[base_pointer + offset_address];
+                    pointer += offset;
+                    stack[base_pointer + memory_address] = stack[pointer];
+                }
+
                 case ADD, SUBTRACT, MULTIPLY, DIVIDE, LESS_THAN, GREATER_THAN, EQUALS -> {
                     int storage_location = (int)program[program_counter++];
                     int mem_a = (int)program[program_counter++];
@@ -79,9 +103,9 @@ public class VirtualMachine {
                     int storage_location = (int)program[program_counter++];
                     int mem_a = (int)program[program_counter++];
                     int mem_b = (int)program[program_counter++];
-                    float a = Float.intBitsToFloat((int)stack[base_pointer + mem_a]);
-                    float b = Float.intBitsToFloat((int)stack[base_pointer + mem_b]);
-                    float result = switch (instruction){
+                    double a = Double.longBitsToDouble(stack[base_pointer + mem_a]);
+                    double b = Double.longBitsToDouble(stack[base_pointer + mem_b]);
+                    double result = switch (instruction){
                         case FLOAT_LESS_THAN -> a < b ? 1 : 0;
                         case FLOAT_GREATER_THAN -> a > b ? 1 : 0;
                         case FLOAT_EQUALS -> a == b ? 1 : 0;
@@ -96,7 +120,7 @@ public class VirtualMachine {
                         case FLOAT_LESS_THAN, FLOAT_GREATER_THAN, FLOAT_EQUALS -> true;
                         default -> false;
                     };
-                    stack[base_pointer + storage_location] = (!comparison)? Float.floatToIntBits(result) : (long)result;
+                    stack[base_pointer + storage_location] = (!comparison)? Double.doubleToLongBits(result) : (long)result;
                 }
 
                 case RETURN -> {

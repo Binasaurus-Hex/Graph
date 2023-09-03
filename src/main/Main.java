@@ -174,7 +174,7 @@ public class Main {
                         tokenizer.eat_token();
                         decimal = get_identifier_text(tokenizer.program_text, next_token);
                     }
-                    return new Literal<Float>(Float.parseFloat(whole+"."+decimal));
+                    return new Literal<Double>(Double.parseDouble(whole+"."+decimal));
                 }
                 return new Literal<Integer>(get_integer_value(tokenizer.program_text, int_token));
             }
@@ -200,6 +200,7 @@ public class Main {
                 tokenizer.eat_token();
                 return expression;
             }
+
             case IDENTIFIER -> {
                 Token identifier = tokenizer.eat_token();
 
@@ -216,6 +217,20 @@ public class Main {
                             Token.Type.CLOSE_PARENTHESIS);
                     return procedure_call;
                 }
+                else if(next_token.type == Token.Type.OPEN_BRACKET){
+                    tokenizer.eat_token();
+                    BinaryOperator index = new BinaryOperator();
+                    index.operation = BinaryOperator.Operation.INDEX;
+                    VariableCall variable = new VariableCall();
+                    variable.name = name;
+                    index.left = variable;
+                    index.right = parse_expression(tokenizer);
+                    if(tokenizer.peek_token().type != Token.Type.CLOSE_BRACKET){
+                        Utils.print_token_error(tokenizer, "missing closing brace");
+                    };
+                    tokenizer.eat_token();
+                    return index;
+                }
 
                 VariableCall variable_call = new VariableCall();
                 variable_call.name = name;
@@ -228,7 +243,22 @@ public class Main {
     static Node parse_expression(Tokenizer tokenizer, int precedence){
         BinaryOperator operator = new BinaryOperator();
         Node subexpression = parse_subexpression(tokenizer);
+
         Token next_token = tokenizer.peek_token();
+        if(subexpression == null && next_token.is_unary_operator()){
+            UnaryOperator unary_operator = new UnaryOperator();
+            switch (tokenizer.eat_token().type){
+                case ADDRESS -> {
+                    unary_operator.operation = UnaryOperator.Operation.REFERENCE;
+                }
+                case STAR -> {
+                    unary_operator.operation = UnaryOperator.Operation.DEREFERENCE;
+                }
+            }
+            unary_operator.node = parse_subexpression(tokenizer);
+            subexpression = unary_operator;
+            next_token = tokenizer.peek_token();
+        }
         if (!next_token.is_binary_operator()) {
             return subexpression;
         }
@@ -421,7 +451,7 @@ public class Main {
     }
 
     static String get_type(Literal literal){
-        if(literal.value instanceof Float){
+        if(literal.value instanceof Double){
             return "float";
         }
         if(literal.value instanceof Integer){
@@ -507,6 +537,14 @@ public class Main {
                 }
                 return generate_variable_to(operator, generated_statements, type);
             }
+        }
+        if(expression instanceof UnaryOperator){
+            UnaryOperator operator = (UnaryOperator) expression;
+            operator.node = flatten_expression(operator.node, generated_statements, false, type, scope);
+            if(!top_level){
+                return generate_variable_to(expression, generated_statements, type);
+            }
+            return expression;
         }
         return expression;
     }
@@ -607,6 +645,14 @@ public class Main {
         return output;
     }
 
+    static String convert_java_type(String java_type){
+        return switch (java_type){
+            case "long" -> "int";
+            case "double" -> "float";
+            default -> java_type;
+        };
+    }
+
     public static void main(String[] args) {
         String program_text = read_file_as_text("main.graph");
         List<Token> tokens = tokenize(program_text);
@@ -629,7 +675,7 @@ public class Main {
             for(Parameter parameter : method.getParameters()){
                 VariableDeclaration declaration = new VariableDeclaration();
                 declaration.name = parameter.getName();
-                declaration.type = parameter.getType().getName();
+                declaration.type = convert_java_type(parameter.getType().getName());
                 external_procedure.inputs.add(declaration);
             }
             procedures.add(external_procedure);

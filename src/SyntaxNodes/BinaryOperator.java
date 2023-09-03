@@ -8,7 +8,8 @@ public class BinaryOperator implements Node {
         ADD,
         SUBTRACT,
         MULTIPLY,
-        DIVIDE;
+        DIVIDE,
+        INDEX;
 
 
         public boolean is_comparison(){

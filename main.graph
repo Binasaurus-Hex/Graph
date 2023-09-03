@@ -15,12 +15,15 @@ pow :: (value: int, power: int) -> int {
     <- total;
 }
 
-main :: (){
-    counter := 0;
 
-    while counter < 50 {
-        print(pow(2, counter));
-        counter = counter + 1;
-    }
+main :: (){
+    x0 := 2;
+    x1 := 4;
+    x2 := 6;
+    x3 := 8;
+
+    ptr: int = &x0;
+
+    print(ptr[3]);
 }
 
