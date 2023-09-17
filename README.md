@@ -3,10 +3,12 @@
 ## Another simple programming language - this time in Java!?
 
 Another iteration of my language "Graph". now a lot more flexible and fully featured than the original C++ version
+
 Key goals :
 - lightning fast compile times
 - simple C like workflow, but with less awkwardness
 - minimal or zero dependencies
+- compile time execution (this is why I've added a bytecode intermediary)
 
 Features : 
 - supports bool, float, and int types
