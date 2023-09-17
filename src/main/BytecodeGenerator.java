@@ -10,6 +10,7 @@ import java.util.*;
 public class BytecodeGenerator {
 
     Map<String, Long> externals = new HashMap<>();
+    Map<String, Boolean> external_returns = new HashMap<>();
 
     class Scope {
         Map<String, Node> types = new HashMap<>();
@@ -32,7 +33,14 @@ public class BytecodeGenerator {
         // declare externals
         long external_id = 0;
         for(Method method : ExternalProcedures.class.getDeclaredMethods()){
-            externals.put(method.getName(), external_id++);
+            String name = Utils.external_name(method.getName());
+            externals.put(name, external_id++);
+            if(method.getReturnType().getName().equals("void")){
+                external_returns.put(name, false);
+            }
+            else{
+                external_returns.put(name, true);
+            }
         }
 
         List<Long> bytecode = new ArrayList<>();
@@ -177,6 +185,9 @@ public class BytecodeGenerator {
                     }
 
                     long mem_a = context.scope.locals.get(a.name);
+                    if(b == null){
+                        System.out.println();
+                    }
                     long mem_b = context.scope.locals.get(b.name);
 
                     long code;
@@ -255,6 +266,10 @@ public class BytecodeGenerator {
                         bytecode.add(size);
                     }
                 }
+                else if(external_returns.get(call.name)){
+                    bytecode.add(InstructionSet.ALLOCATE.code());
+                    bytecode.add(1l); // we only support single size returns from externals
+                }
 
                 for(Node input : call.inputs){
                     VariableCall variable_call = (VariableCall) input; // assumed
@@ -282,7 +297,7 @@ public class BytecodeGenerator {
                 List<Long> block_bytecode = new ArrayList<>();
                 generate_bytecode(if_statement.block, block_bytecode, context);
 
-                bytecode.add((long)(bytecode.size() + block_bytecode.size() + 2));
+                bytecode.add((long)(block_bytecode.size() + 1));
                 bytecode.add(context.scope.locals.get(var_call.name));
                 bytecode.addAll(block_bytecode);
             }
@@ -292,9 +307,8 @@ public class BytecodeGenerator {
 
                 List<Long> block_bytecode = new ArrayList<>();
                 generate_bytecode(while_statement.block, block_bytecode, context);
-                long condition_location = bytecode.size() + block_bytecode.size() + 2;
                 bytecode.add(InstructionSet.JUMP.code());
-                bytecode.add(condition_location);
+                bytecode.add((long)block_bytecode.size());
 
                 long block = bytecode.size();
 
@@ -304,7 +318,7 @@ public class BytecodeGenerator {
                 generate_bytecode(while_statement.condition_block, condition, context);
                 bytecode.addAll(condition);
                 bytecode.add(InstructionSet.JUMP_IF.code());
-                bytecode.add(block);
+                bytecode.add(block - bytecode.size() - 1);
                 VariableCall condition_var = (VariableCall) while_statement.condition;
                 bytecode.add(context.scope.locals.get(condition_var.name));
 

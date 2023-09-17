@@ -4,6 +4,7 @@ import SyntaxNodes.*;
 import Bytecode.VirtualMachine;
 
 import java.io.*;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.nio.file.Files;
@@ -253,6 +254,9 @@ public class Main {
                 }
                 case STAR -> {
                     unary_operator.operation = UnaryOperator.Operation.DEREFERENCE;
+                }
+                case MINUS -> {
+                    unary_operator.operation = UnaryOperator.Operation.MINUS;
                 }
             }
             unary_operator.node = parse_subexpression(tokenizer);
@@ -594,12 +598,47 @@ public class Main {
                     VariableCall left = (VariableCall)operator.left;
                     type = left.type;
                 }
+
+                if(operator.operation == BinaryOperator.Operation.INDEX){
+                    VariableCall array = (VariableCall) operator.left;
+                    ArrayType array_type = (ArrayType) array.type;
+                    type = array_type.type;
+                }
                 return generate_variable_to(operator, generated_statements, type);
+            }
+            else{
+                System.out.println();
             }
         }
         if(expression instanceof UnaryOperator){
             UnaryOperator operator = (UnaryOperator) expression;
             operator.node = flatten_expression(operator.node, generated_statements, false, type, scope);
+
+            if(operator.operation == UnaryOperator.Operation.MINUS || operator.operation == UnaryOperator.Operation.PLUS){
+                BinaryOperator binary_operator = new BinaryOperator();
+                if(operator.operation == UnaryOperator.Operation.MINUS){
+                    binary_operator.operation = BinaryOperator.Operation.SUBTRACT;
+                }
+                if(operator.operation == UnaryOperator.Operation.PLUS){
+                    binary_operator.operation = BinaryOperator.Operation.ADD;
+                }
+
+                VariableCall var_call = (VariableCall) operator.node;
+                LiteralType op_type = (LiteralType) var_call.type;
+                switch (op_type.type){
+                    case FLOAT -> {
+                        Literal<Double> zero = new Literal<>(0.0);
+                        binary_operator.left = generate_variable_to(zero, generated_statements, op_type);
+                    }
+                    case INT -> {
+                        Literal<Integer> zero = new Literal<>(0);
+                        binary_operator.left = generate_variable_to(zero, generated_statements, op_type);
+                    }
+                }
+                binary_operator.right = operator.node;
+                expression = binary_operator;
+            }
+
             if(!top_level){
                 return generate_variable_to(expression, generated_statements, type);
             }
@@ -644,6 +683,9 @@ public class Main {
                 ArrayAssign array_assign = (ArrayAssign) node;
                 VariableCall array_variable = (VariableCall)array_assign.array;
                 VariableDeclaration array = scope.find_variable(array_variable.name);
+                if(array == null){
+                    System.out.println();
+                }
                 Node array_type = ((ArrayType)array.type).type;
                 array_assign.index = flatten_expression(array_assign.index, output, false, LiteralType.INT(), scope);
                 array_assign.value = flatten_expression(array_assign.value, output, false, array_type, scope);
@@ -741,7 +783,7 @@ public class Main {
         // external procedures
         for(Method method : ExternalProcedures.class.getDeclaredMethods()){
             ProcedureDeclaration external_procedure = new ProcedureDeclaration();
-            external_procedure.name = method.getName();
+            external_procedure.name = Utils.external_name(method.getName());
             external_procedure.external = true;
             external_procedure.inputs = new ArrayList<>();
             for(Parameter parameter : method.getParameters()){

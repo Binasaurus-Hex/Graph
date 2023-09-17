@@ -41,4 +41,11 @@ public class Utils {
         System.exit(0);
     }
 
+    public static String external_name(String name){
+        if(name.startsWith("_")){
+            return name.substring(1);
+        }
+        return name;
+    }
+
 }

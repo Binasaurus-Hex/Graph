@@ -28,7 +28,6 @@ public enum InstructionSet {
     CALL_PROCEDURE,
     RETURN,
     CALL_EXTERNAL,
-    PRINT,
     ALLOCATE,
     DEALLOCATE,
     ASSIGN_LITERAL,

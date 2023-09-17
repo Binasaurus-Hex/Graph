@@ -91,7 +91,7 @@ public class Token {
 
     boolean is_unary_operator(){
         return switch (type) {
-            case STAR, ADDRESS -> true;
+            case STAR, ADDRESS, MINUS, PLUS -> true;
             default -> false;
         };
     }

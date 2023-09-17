@@ -154,21 +154,24 @@ public class VirtualMachine {
 
                 case JUMP -> {
                     int location = (int)program[program_counter++];
-                    program_counter = location;
+                    int literal_location = program_counter + location;
+                    program_counter = literal_location;
                 }
 
                 case JUMP_IF -> {
                     int location = (int)program[program_counter++];
+                    int literal_location = program_counter + location;
                     int boolean_address = (int)program[program_counter++];
                     if(stack[base_pointer + boolean_address] == 1){
-                        program_counter = location;
+                        program_counter = literal_location;
                     }
                 }
                 case JUMP_IF_NOT -> {
                     int location = (int)program[program_counter++];
+                    int literal_location = program_counter + location;
                     int boolean_address = (int)program[program_counter++];
                     if(stack[base_pointer + boolean_address] != 1){
-                        program_counter = location;
+                        program_counter = literal_location;
                     }
                 }
 
@@ -198,7 +201,23 @@ public class VirtualMachine {
                         }
                     }
                     try {
-                        external_procedure.invoke(null, args);
+                        Object result = external_procedure.invoke(null, args);
+                        String return_type = external_procedure.getReturnType().getName();
+                        offset -= 1;
+                        switch (return_type){
+                            case "double" -> {
+                                Double double_result = (Double) result;
+                                stack[offset] = Double.doubleToLongBits(double_result);
+                            }
+                            case "long" -> {
+                                Long long_result = (Long) result;
+                                stack[offset] = long_result;
+                            }
+                            case "boolean" -> {
+                                int bool_result = ((Boolean)result)? 1 : 0;
+                                stack[offset] = bool_result;
+                            }
+                        }
                     } catch (IllegalAccessException e) {
                         e.printStackTrace();
                     } catch (InvocationTargetException e) {
