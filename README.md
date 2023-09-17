@@ -53,9 +53,90 @@ while counter < 100 {
 }
 ```
 
+# Moving a square around the screen
+```go
+length :: (x: float, y: float) -> float {
+    <- sqrt(x * x + y * y);
+}
 
+get_move_y :: () -> float {
+    W := 87;
+    S := 83;
+
+    move_y := 0.;
+    if key_pressed(W) {
+        move_y = - 1.;
+    }
+    if key_pressed(S) {
+        move_y = 1.;
+    }
+    <- move_y;
+}
+
+get_move_x :: () -> float {
+    A := 65;
+    D := 68;
+
+    move_x := 0.;
+    if key_pressed(A) {
+        move_x = -1.;
+    }
+    if key_pressed(D) {
+        move_x = 1.;
+    }
+    <- move_x;
+}
+
+main :: (){
+
+    window_width := 1000;
+    window_height := 1000;
+
+    open_window(window_width, window_height);
+
+    previous_time : float = time_seconds();
+    delta := 0.;
+
+    x := 0.;
+    y := 0.;
+
+    vx := 200.;
+    vy := 200.;
+
+    move_x := 0.;
+    move_y := 0.;
+
+    while true {
+        frame_begin();
+        clear_screen();
+
+        move_x = get_move_x();
+        move_y = get_move_y();
+
+        len : float = length(move_x, move_y);
+
+        if move_x > 0. {
+            move_x = move_x / len;
+        }
+        if move_y > 0. {
+            move_y = move_y / len;
+        }
+
+        x = x + vx * move_x * delta;
+        y = y + vy * move_y * delta;
+
+
+        fill_rect(int(x), int(y), 20, 20);
+
+        current_time : float = time_seconds();
+        delta = current_time - previous_time;
+        previous_time = current_time;
+
+        draw();
+    }
+}
+```
 ## whats next?
 I'd like to get a few more things in before transitioning the code back to C++, and writing a backend to convert the bytecode to machine code.
 Hopefully this will remove the dependency on the NASM assembler I used on the previous iteration.
-
   
