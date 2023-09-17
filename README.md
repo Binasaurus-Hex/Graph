@@ -8,6 +8,7 @@ Key goals :
 - simple C like workflow, but with less awkwardness
 - minimal or zero dependencies
 
+Features : 
 - supports bool, float, and int types
 - supports arrays of aformentioned types
 - type inference (not in all cases yet)
