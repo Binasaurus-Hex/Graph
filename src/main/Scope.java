@@ -1,6 +1,7 @@
 package main;
 
 import SyntaxNodes.ProcedureDeclaration;
+import SyntaxNodes.StructDeclaration;
 import SyntaxNodes.VariableDeclaration;
 
 import java.util.List;
@@ -9,6 +10,7 @@ public class Scope {
     public ProcedureDeclaration enclosing_procedure = null; // for return statements
     public List<ProcedureDeclaration> procedures;
     public List<VariableDeclaration> variables;
+    public List<StructDeclaration> structs;
 
     public ProcedureDeclaration find_procedure(String name){
         for(ProcedureDeclaration procedure : procedures){

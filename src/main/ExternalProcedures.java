@@ -34,7 +34,8 @@ public class ExternalProcedures {
     static Canvas canvas;
     static Graphics2D graphics;
     static BufferStrategy buffer;
-    static final Map<Integer, Boolean> key_pressed = new HashMap<>();
+    static final Object input_lock = new Object();
+    static Map<Integer, Boolean> key_pressed = new HashMap<>();
 
     public static void open_window(long width, long height){
         frame = new JFrame();
@@ -46,14 +47,14 @@ public class ExternalProcedures {
         frame.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                synchronized (key_pressed){
+                synchronized (input_lock){
                     key_pressed.put(e.getKeyCode(), true);
                 }
             }
 
             @Override
             public void keyReleased(KeyEvent e) {
-                synchronized (key_pressed){
+                synchronized (input_lock){
                     key_pressed.put(e.getKeyCode(), false);
                 }
             }
@@ -68,10 +69,6 @@ public class ExternalProcedures {
             buffer = canvas.getBufferStrategy();
             graphics = (Graphics2D) buffer.getDrawGraphics();
         }
-    }
-
-    public static void get_x_dir(){
-        
     }
 
     public static void clear_screen(){
@@ -93,9 +90,7 @@ public class ExternalProcedures {
     }
 
     public static boolean key_pressed(long key){
-        synchronized (key_pressed){
-            System.out.println(key_pressed);
-            //System.out.println(val);
+        synchronized (input_lock){
             return key_pressed.getOrDefault((int)key, false);
         }
     }

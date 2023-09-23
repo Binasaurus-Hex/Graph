@@ -1,7 +1,22 @@
 package main;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Token {
 
+    public static Map<Type, String> keywords  = new HashMap<>() {{
+        put(Type.STRUCT, "struct");
+        put(Type.WHILE, "while");
+        put(Type.ELSE, "else");
+        put(Type.IF, "if");
+        put(Type.TRUE, "true");
+        put(Type.FALSE, "false");
+        put(Type.FOR, "for");
+        put(Type.AND, "and");
+        put(Type.OR, "or");
+        put(Type.IS, "is");
+    }};
 
     public enum Type {
         STRING,
@@ -9,15 +24,16 @@ public class Token {
         INTEGER,
 
         // keywords
-        WHILE("while"),
-        FOR("for"),
-        AND("and"),
-        OR("or"),
-        IS("is"),
-        IF("if"),
-        ELSE("else"),
-        TRUE("true"),
-        FALSE("false"),
+        STRUCT,
+        WHILE,
+        ELSE,
+        TRUE,
+        FALSE,
+        FOR,
+        AND,
+        OR,
+        IS,
+        IF,
 
         // punctuation
         OPEN_BRACKET("["),
@@ -77,14 +93,14 @@ public class Token {
 
     boolean is_keyword(){
         return switch (type){
-            case WHILE,FOR,AND,OR,IF,ELSE,BACK_ARROW -> true;
+            case WHILE,FOR,AND,OR,IF,ELSE,STRUCT -> true;
             default -> false;
         };
     }
 
     boolean is_binary_operator(){
         return switch (type){
-            case MINUS,PLUS,FORWARD_SLASH,STAR,DOUBLE_EQUALS,LESS_THAN,GREATER_THAN-> true;
+            case MINUS,PLUS,FORWARD_SLASH,STAR,DOUBLE_EQUALS,LESS_THAN,GREATER_THAN, DOT, EQUALS, OPEN_BRACKET -> true;
             default -> false;
         };
     }

@@ -2,6 +2,7 @@ package SyntaxNodes;
 
 public class BinaryOperator implements Node {
     public enum Operation {
+        ASSIGN,
         LESS_THAN,
         GREATER_THAN,
         EQUALS,
@@ -9,8 +10,8 @@ public class BinaryOperator implements Node {
         SUBTRACT,
         MULTIPLY,
         DIVIDE,
-        INDEX;
-
+        INDEX,
+        DOT;
 
         public boolean is_comparison(){
             switch (this){

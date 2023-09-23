@@ -1,7 +1,11 @@
+Vector2 :: struct {
+    x: float;
+    y: float;
+}
+
 length :: (x: float, y: float) -> float {
     <- sqrt(x * x + y * y);
 }
-
 
 get_move_y :: () -> float {
     W := 87;
@@ -33,49 +37,55 @@ get_move_x :: () -> float {
 
 main :: (){
 
-    window_width := 1000;
-    window_height := 1000;
+    window_width := 1000.;
+    window_height := 1000.;
 
-    width :float = float(window_width);
-    height: float = float(window_height);
-
-    open_window(window_width, window_height);
+    open_window(int(window_width), int(window_height));
 
     previous_time : float = time_seconds();
     delta := 0.;
 
-    x := 0.;
-    y := 0.;
+    box_size := 20;
 
-    vx := 200.;
-    vy := 200.;
+    position: Vector2;
+    position.x = 0.;
+    position.y = 0.;
 
-    move_x := 0.;
-    move_y := 0.;
+    velocity: Vector2;
+    velocity.x = 1000.;
+    velocity.y = 1000.;
 
-    running := true;
+    move: Vector2;
+    move.x = 0.;
+    move.y = 0.;
 
-    while running {
+    while true {
         frame_begin();
         clear_screen();
 
-        move_x = get_move_x();
-        move_y = get_move_y();
+        move.x = get_move_x();
+        move.y = get_move_y();
 
-        len : float = length(move_x, move_y);
+        len : float = length(move.x, move.y);
 
-        if move_x > 0. {
-            move_x = move_x / len;
+        if move.x > 0. {
+            move.x = move.x / len;
         }
-        if move_y > 0. {
-            move_y = move_y / len;
+        if move.y > 0. {
+            move.y = move.y / len;
         }
 
-        x = x + vx * move_x * delta;
-        y = y + vy * move_y * delta;
+        position.x = position.x + velocity.x * move.x * delta;
+        position.y = position.y + velocity.y * move.y * delta;
 
+        if position.x > window_width - 100. {
+            position.x = window_width - 100.;
+        }
+        if position.y > window_height - 100. {
+            position.y = window_height - 100.;
+        }
 
-        fill_rect(int(x), int(y), 20, 20);
+        fill_rect(int(position.x), int(position.y), box_size, box_size);
 
         current_time : float = time_seconds();
         delta = current_time - previous_time;

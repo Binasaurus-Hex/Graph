@@ -2,8 +2,6 @@ package main;
 
 import Bytecode.InstructionSet;
 import SyntaxNodes.*;
-
-import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -107,6 +105,29 @@ public class BytecodeGenerator {
             ArrayType array = (ArrayType) type;
             return array.size;
         }
+        if(type instanceof StructDeclaration){
+            StructDeclaration struct = (StructDeclaration) type;
+            long total_size = 0;
+            for(Node node : struct.body){
+                VariableDeclaration field = (VariableDeclaration)node;
+                total_size += get_size(field.type);
+            }
+            return total_size;
+        }
+        return -1;
+    }
+
+    long get_field_offset(StructDeclaration struct, String field_name){
+        int offset = 0;
+        for(Node node : struct.body){
+            VariableDeclaration field = (VariableDeclaration) node;
+            if(field.name.equals(field_name)){
+                return offset;
+            }
+            offset += get_size(field.type);
+        }
+        System.out.println("couldn't find field " + field_name + " for " + struct.name);
+        System.exit(0);
         return -1;
     }
 
@@ -136,6 +157,21 @@ public class BytecodeGenerator {
                 bytecode.add(index_address);
                 bytecode.add(value_address);
             }
+            if(node instanceof StructAssign){
+                StructAssign assign = (StructAssign) node;
+                VariableCall struct = (VariableCall) assign.struct;
+                VariableCall field = (VariableCall) assign.field;
+                long struct_address = context.scope.locals.get(struct.name);
+                long field_offset = get_field_offset((StructDeclaration) struct.type, field.name);
+                VariableCall value = (VariableCall) assign.value;
+                long value_address = context.scope.locals.get(value.name);
+
+                bytecode.add(InstructionSet.STRUCT_FIELD_ASSIGN.code());
+                bytecode.add(struct_address);
+                bytecode.add(field_offset);
+                bytecode.add(value_address);
+            }
+
             if(node instanceof VariableAssign){
 
                 VariableAssign assign = (VariableAssign) node;
@@ -188,7 +224,16 @@ public class BytecodeGenerator {
                     if(b == null){
                         System.out.println();
                     }
-                    long mem_b = context.scope.locals.get(b.name);
+
+                    long mem_b;
+                    if(operator.operation == BinaryOperator.Operation.DOT){
+                        StructDeclaration struct = (StructDeclaration)a.type;
+                        mem_b = get_field_offset(struct, b.name);
+                    }
+                    else{
+                        mem_b = context.scope.locals.get(b.name);
+                    }
+
 
                     long code;
                     switch (operator.operation){
@@ -222,6 +267,9 @@ public class BytecodeGenerator {
                         }
                         case INDEX -> {
                             code = InstructionSet.ASSIGN_ARRAY_INDEX.code();
+                        }
+                        case DOT -> {
+                            code = InstructionSet.ASSIGN_STRUCT_FIELD.code();
                         }
                         default -> code = -1;
                     };
@@ -343,6 +391,9 @@ public class BytecodeGenerator {
                 long return_location = context.scope.locals.get("<-0");
                 bytecode.add(return_location);
                 bytecode.add(context.scope.locals.get(value.name));
+
+                bytecode.add(InstructionSet.RETURN.code());
+                bytecode.add((long)return_statement.procedure.inputs.size());
             }
         }
     }

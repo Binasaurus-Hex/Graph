@@ -3,15 +3,14 @@ package main;
 import SyntaxNodes.*;
 import Bytecode.VirtualMachine;
 
-import java.io.*;
-import java.lang.reflect.Array;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
 
@@ -28,7 +27,7 @@ public class Main {
         if(token_text == null){
             return false;
         }
-        if(program_text_index + token_text.length() >= program_text.length())return false;
+        if(program_text_index + token_text.length() > program_text.length())return false;
 
         for(int i = 0; i < token_text.length(); i++){
             char a = token_text.charAt(i);
@@ -61,6 +60,9 @@ public class Main {
             case DOUBLE_EQUALS: return BinaryOperator.Operation.EQUALS;
             case LESS_THAN:     return BinaryOperator.Operation.LESS_THAN;
             case GREATER_THAN:  return BinaryOperator.Operation.GREATER_THAN;
+            case DOT:           return BinaryOperator.Operation.DOT;
+            case EQUALS:        return BinaryOperator.Operation.ASSIGN;
+            case OPEN_BRACKET:  return BinaryOperator.Operation.INDEX;
         }
         return null;
     }
@@ -73,6 +75,7 @@ public class Main {
         List<Token> tokens = new ArrayList<>();
 
         Token.Type[] token_types = Token.Type.values();
+
         int text_index = 0;
         int last_token_index = 0;
         while (text_index < program_text.length()){
@@ -115,6 +118,12 @@ public class Main {
                         }
                         if (is_number) identifier.type = Token.Type.INTEGER;
 
+                        for(Map.Entry<Token.Type, String> keyword : Token.keywords.entrySet()){
+                            if(matches(keyword.getValue(), program_text, last_token_index)){
+                                identifier.type = keyword.getKey();
+                                break;
+                            }
+                        }
                         tokens.add(identifier);
                     }
 
@@ -218,20 +227,6 @@ public class Main {
                             Token.Type.CLOSE_PARENTHESIS);
                     return procedure_call;
                 }
-                else if(next_token.type == Token.Type.OPEN_BRACKET){
-                    tokenizer.eat_token();
-                    BinaryOperator index = new BinaryOperator();
-                    index.operation = BinaryOperator.Operation.INDEX;
-                    VariableCall variable = new VariableCall();
-                    variable.name = name;
-                    index.left = variable;
-                    index.right = parse_expression(tokenizer);
-                    if(tokenizer.peek_token().type != Token.Type.CLOSE_BRACKET){
-                        Utils.print_token_error(tokenizer, "missing closing brace");
-                    };
-                    tokenizer.eat_token();
-                    return index;
-                }
 
                 VariableCall variable_call = new VariableCall();
                 variable_call.name = name;
@@ -279,7 +274,14 @@ public class Main {
 
             operator.right = parse_expression(tokenizer, operator.operation.ordinal());
 
+            if(operator.operation == BinaryOperator.Operation.INDEX){
+                if(tokenizer.peek_token().type != Token.Type.CLOSE_BRACKET){
+                    Utils.print_token_error(tokenizer, "missing closing bracket");
+                }
+                tokenizer.eat_token();
+            }
             next_token = tokenizer.peek_token();
+
             if (!next_token.is_binary_operator()) {
                 return operator;
             }
@@ -368,6 +370,11 @@ public class Main {
                     case "float" -> literal.type = LiteralType.Type.FLOAT;
                     case "int" -> literal.type = LiteralType.Type.INT;
                     case "bool" -> literal.type = LiteralType.Type.BOOL;
+                    default -> {
+                        StructType struct = new StructType();
+                        struct.name = text;
+                        return struct;
+                    }
                 }
                 return literal;
             }
@@ -396,6 +403,14 @@ public class Main {
 
                 if(next_token.type == Token.Type.COLON){
                     tokenizer.eat_token();
+
+                    if(tokenizer.peek_token().type == Token.Type.STRUCT){
+                        tokenizer.eat_token(); // struct
+                        StructDeclaration struct = new StructDeclaration();
+                        struct.name = name;
+                        struct.body = parse_block(tokenizer);
+                        return struct;
+                    }
                     // constant or procedure
                     // for now only procedure
                     ProcedureDeclaration procedure = new ProcedureDeclaration();
@@ -437,40 +452,41 @@ public class Main {
                     }
                 }
             }
-            else if(next_token.type == Token.Type.EQUALS){
-                tokenizer.eat_token(); // name
-                tokenizer.eat_token(); // =
-                VariableAssign assign = new VariableAssign();
-                assign.variable_name = name;
-                assign.value = parse_expression(tokenizer);
-                return assign;
-            }
-            else if(next_token.type == Token.Type.OPEN_BRACKET){
-                Node left = parse_expression(tokenizer);
-                if(!(left instanceof BinaryOperator)){
-                    Utils.print_token_error(tokenizer, "invalid array access");
-                }
-
-                BinaryOperator index = (BinaryOperator) left;
-
-                if(tokenizer.peek_token().type != Token.Type.EQUALS){
-                    Utils.print_token_error(tokenizer, "no assignment for array");
-                }
-                tokenizer.eat_token();
-                Node value = parse_expression(tokenizer);
-
-                ArrayAssign array_assign = new ArrayAssign();
-                array_assign.array = index.left;
-                array_assign.index = index.right;
-                array_assign.value = value;
-                return array_assign;
-            }
+//            else if(next_token.type == Token.Type.EQUALS){
+//                tokenizer.eat_token(); // name
+//                tokenizer.eat_token(); // =
+//                VariableAssign assign = new VariableAssign();
+//                assign.variable_name = name;
+//                assign.value = parse_expression(tokenizer);
+//                return assign;
+//            }
+//            else if(next_token.type == Token.Type.OPEN_BRACKET){
+//                Node left = parse_expression(tokenizer);
+//                if(!(left instanceof BinaryOperator)){
+//                    Utils.print_token_error(tokenizer, "invalid array access");
+//                }
+//
+//                BinaryOperator index = (BinaryOperator) left;
+//
+//                if(tokenizer.peek_token().type != Token.Type.EQUALS){
+//                    Utils.print_token_error(tokenizer, "no assignment for array");
+//                }
+//                tokenizer.eat_token();
+//                Node value = parse_expression(tokenizer);
+//
+//                ArrayAssign array_assign = new ArrayAssign();
+//                array_assign.array = index.left;
+//                array_assign.index = index.right;
+//                array_assign.value = value;
+//                return array_assign;
+//            }
             else{
                 Node expression = parse_expression(tokenizer);
                 return expression;
             }
         }
-        else if (name_or_keyword.is_keyword()){
+        // statement "keywords"
+        else if (name_or_keyword.is_keyword() || name_or_keyword.type == Token.Type.BACK_ARROW){
             Token keyword = tokenizer.eat_token();
             if(keyword.type == Token.Type.WHILE){
                 While while_statement = new While();
@@ -579,6 +595,11 @@ public class Main {
                 VariableDeclaration input = (VariableDeclaration) procedure_declaration.inputs.get(i);
                 procedure_call.inputs.set(i, flatten_expression(procedure_call.inputs.get(i), generated_statements, false, input.type, scope));
             }
+
+            if(!(procedure_declaration.outputs == null || procedure_declaration.outputs.isEmpty())){
+                type = procedure_declaration.outputs.get(0); // TODO change for multiple return
+            }
+
             if(!top_level){
                 return generate_variable_to(procedure_call, generated_statements, type);
             }
@@ -586,17 +607,71 @@ public class Main {
         }
         if(expression instanceof BinaryOperator){
             BinaryOperator operator = (BinaryOperator) expression;
+
+            if(operator.operation == BinaryOperator.Operation.ASSIGN){
+                // assign to array
+                // assign to variable
+                // assign to struct
+                if(operator.left instanceof BinaryOperator){
+                    BinaryOperator left = (BinaryOperator) operator.left;
+                    switch (left.operation){
+                        case DOT -> {
+                            StructAssign struct_assign = new StructAssign();
+                            struct_assign.struct = flatten_expression(left.left, generated_statements, false, null, scope);
+                            struct_assign.field = left.right;
+                            struct_assign.value = flatten_expression(operator.right, generated_statements, false, null, scope);
+                            return struct_assign;
+                        }
+                        case INDEX -> {
+                            ArrayAssign array_assign = new ArrayAssign();
+                            array_assign.array = flatten_expression(left.left, generated_statements, false, null, scope);
+                            array_assign.index = flatten_expression(left.right, generated_statements, false, LiteralType.INT(), scope);
+                            array_assign.value = flatten_expression(operator.right, generated_statements, false, null, scope);
+                            return array_assign;
+                        }
+                    }
+                }
+                else{
+                    VariableAssign variable_assign = new VariableAssign();
+                    operator.left = flatten_expression(operator.left, generated_statements, false, null, scope);
+                    operator.right = flatten_expression(operator.right, generated_statements, false, null, scope);
+
+                    VariableCall left = (VariableCall) operator.left;
+                    VariableCall right = (VariableCall) operator.right;
+                    variable_assign.variable_name = left.name;
+                    variable_assign.value = right;
+                    return variable_assign;
+                }
+            }
+
             operator.left = flatten_expression(operator.left, generated_statements, false, type, scope);
-            operator.right = flatten_expression(operator.right, generated_statements, false, type, scope);
+
+            if(operator.operation == BinaryOperator.Operation.DOT){
+                if(!(operator.right instanceof VariableCall)){
+                    System.out.println("dot operator cannot have expression on right hand side");
+                    System.exit(0);
+                }
+            }
+            else{
+                operator.right = flatten_expression(operator.right, generated_statements, false, type, scope);
+            }
+
             if(!top_level){
+
+                // calculate return type
                 if(operator.operation.is_comparison()){
                     LiteralType literal_type = new LiteralType();
                     literal_type.type = LiteralType.Type.BOOL;
                     type = literal_type;
                 }
                 if(type == null){
-                    VariableCall left = (VariableCall)operator.left;
-                    type = left.type;
+                    if(operator.left instanceof VariableCall){
+                        VariableCall left = (VariableCall)operator.left;
+                        type = left.type;
+                    }
+                    else{
+                        System.out.println();
+                    }
                 }
 
                 if(operator.operation == BinaryOperator.Operation.INDEX){
@@ -604,10 +679,24 @@ public class Main {
                     ArrayType array_type = (ArrayType) array.type;
                     type = array_type.type;
                 }
+
+                if(operator.operation == BinaryOperator.Operation.DOT){
+                    VariableCall struct_call = (VariableCall) operator.left;
+                    StructDeclaration struct = (StructDeclaration) struct_call.type;
+                    VariableCall field = (VariableCall) operator.right;
+                    for(Node node : struct.body){
+                        VariableDeclaration struct_field = (VariableDeclaration) node;
+                        if(struct_field.name.equals(field.name)){
+                            type = struct_field.type;
+                        }
+                    }
+                }
+                // end
+
                 return generate_variable_to(operator, generated_statements, type);
             }
             else{
-                System.out.println();
+                System.out.println("top level binary operator?");
             }
         }
         if(expression instanceof UnaryOperator){
@@ -657,43 +746,42 @@ public class Main {
                 sub_scope.enclosing_procedure = procedure;
                 sub_scope.variables = new ArrayList<>();
                 sub_scope.procedures = new ArrayList<>();
+                sub_scope.structs = new ArrayList<>();
                 sub_scope.variables.addAll(scope.variables);
                 sub_scope.procedures.addAll(scope.procedures);
+                sub_scope.structs.addAll(scope.structs);
 
                 for(Node proc_input : procedure.inputs){
                     VariableDeclaration declaration = (VariableDeclaration) proc_input;
                     sub_scope.variables.add(declaration);
                 }
+                int i = 0;
+                for(Node proc_output : procedure.outputs){
+                    if(proc_output instanceof StructType){
+                        StructType struct_type = (StructType) proc_output;
+                        for(StructDeclaration struct : scope.structs){
+                            if(struct.name.equals(struct_type.name)){
+                                procedure.outputs.set(i, struct);
+                            }
+                        }
+                    }
+                    i += 1;
+                }
                 procedure.block = flatten(procedure.block, sub_scope);
                 output.add(procedure);
                 continue;
             }
-            if(node instanceof VariableAssign){
-                VariableAssign variable_assign = (VariableAssign)node;
-                VariableDeclaration declaration = scope.find_variable(variable_assign.variable_name);
-                if(declaration == null){
-                    System.out.println(String.format("cant find variable %s", variable_assign.variable_name));
-                    System.exit(0);
-                }
-                variable_assign.value = flatten_expression(variable_assign.value, output, true, declaration.type, scope);
-                output.add(variable_assign);
-                continue;
-            }
-            if(node instanceof ArrayAssign){
-                ArrayAssign array_assign = (ArrayAssign) node;
-                VariableCall array_variable = (VariableCall)array_assign.array;
-                VariableDeclaration array = scope.find_variable(array_variable.name);
-                if(array == null){
-                    System.out.println();
-                }
-                Node array_type = ((ArrayType)array.type).type;
-                array_assign.index = flatten_expression(array_assign.index, output, false, LiteralType.INT(), scope);
-                array_assign.value = flatten_expression(array_assign.value, output, false, array_type, scope);
-                output.add(array_assign);
-                continue;
-            }
             if(node instanceof VariableDeclaration){
                 VariableDeclaration declaration = (VariableDeclaration) node;
+                if(declaration.type instanceof StructType){
+                    StructType struct_type = (StructType) declaration.type;
+                    for(StructDeclaration struct : scope.structs){
+                        if(struct.name.equals(struct_type.name)){
+                            declaration.type = struct;
+                            break;
+                        }
+                    }
+                }
                 scope.variables.add(declaration);
                 output.add(declaration);
                 if(declaration.value != null) {
@@ -717,6 +805,7 @@ public class Main {
             }
             if(node instanceof Return){
                 Return return_statement = (Return) node;
+                return_statement.procedure = scope.enclosing_procedure;
                 return_statement.type = scope.enclosing_procedure.outputs.get(0);
                 return_statement.value = flatten_expression(return_statement.value, output, false, return_statement.type, scope);
                 output.add(return_statement);
@@ -779,6 +868,7 @@ public class Main {
 
         List<Node> program = parse_program(tokenizer);
         List<ProcedureDeclaration> procedures = new ArrayList<>();
+        List<StructDeclaration> structs = new ArrayList<>();
 
         // external procedures
         for(Method method : ExternalProcedures.class.getDeclaredMethods()){
@@ -804,21 +894,22 @@ public class Main {
             if(node instanceof VariableDeclaration){
                 globals.add((VariableDeclaration) node);
             }
+            if(node instanceof StructDeclaration){
+                structs.add((StructDeclaration) node);
+            }
         }
 
         Scope global_scope = new Scope();
         global_scope.procedures = procedures;
         global_scope.variables = globals;
-
+        global_scope.structs = structs;
 
         program = flatten(program, global_scope);
-
 
         BytecodeGenerator generator = new BytecodeGenerator();
         BytecodeProgram bytecode = generator.generate_bytecode(program);
         VirtualMachine vm = new VirtualMachine();
 
-        System.out.println("start");
         vm.run(bytecode.code, bytecode.entry_point);
     }
 }

@@ -2,7 +2,7 @@ package SyntaxNodes;
 
 public class LiteralType implements Node {
     public enum Type {
-        FLOAT,INT,BOOL,STRUCT
+        FLOAT,INT,BOOL
     };
     public Type type;
 

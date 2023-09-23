@@ -79,6 +79,15 @@ public class VirtualMachine {
                     stack[base_pointer + memory_address] = stack[array_address];
                 }
 
+                case ASSIGN_STRUCT_FIELD -> {
+                    int memory_address = (int)program[program_counter++];
+                    int struct_address = base_pointer + (int)program[program_counter++];
+
+                    int offset = (int)program[program_counter++];
+                    int field_address = struct_address + offset;
+                    stack[base_pointer + memory_address] = stack[field_address];
+                }
+
                 case ARRAY_ASSIGN -> {
                     int array_address = (int)program[program_counter++];
                     int index_address = (int)program[program_counter++];
@@ -86,6 +95,14 @@ public class VirtualMachine {
 
                     int index = (int)stack[base_pointer + index_address];
                     stack[base_pointer + array_address + index] = stack[base_pointer + value_address];
+                }
+
+                case STRUCT_FIELD_ASSIGN -> {
+                    int struct_address = (int) program[program_counter++];
+                    int field_offset = (int)program[program_counter++];
+                    int value_address = (int)program[program_counter++];
+
+                    stack[base_pointer + struct_address + field_offset] = stack[base_pointer + value_address];
                 }
 
                 case ADD, SUBTRACT, MULTIPLY, DIVIDE, LESS_THAN, GREATER_THAN, EQUALS -> {
