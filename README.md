@@ -42,6 +42,19 @@ key_codes[1] = 4;
 key_codes[2] = 8;
 ```
 
+structs
+```go
+Vector2 :: struct {
+    x: float;
+    y: float;
+}
+
+...
+
+position: Vector2;
+position.x = 50;
+```
+
 control flow
 ```go
 counter := 0;
