@@ -728,6 +728,17 @@ public class Main {
                 expression = binary_operator;
             }
 
+            if(operator.operation == UnaryOperator.Operation.DEREFERENCE){
+                PointerType pointer_type = (PointerType) ((VariableCall) operator.node).type;
+                type = pointer_type.type;
+            }
+
+            if(operator.operation == UnaryOperator.Operation.REFERENCE){
+                PointerType pointer_type = new PointerType();
+                pointer_type.type = ((VariableCall)operator.node).type;
+                type = pointer_type;
+            }
+
             if(!top_level){
                 return generate_variable_to(expression, generated_statements, type);
             }
@@ -789,15 +800,13 @@ public class Main {
                     assign.variable_name = declaration.name;
                     assign.value = declaration.value;
                     declaration.value = null;
-                    assign.value = flatten_expression(assign.value, output, true, declaration.type, scope);
+                    assign.value = flatten_expression(assign.value, output, false, declaration.type, scope);
+                    VariableCall call = (VariableCall) assign.value;
                     if(declaration.type == null){
-                        if(assign.value instanceof Literal){
-                            declaration.type = get_type((Literal) assign.value);
-                        }
-                        if(assign.value instanceof VariableCall){
-                            VariableCall call = (VariableCall)assign.value;
-                            declaration.type = call.type;
-                        }
+                        declaration.type = call.type;
+                    }
+                    else{
+                        // check type equality
                     }
                     output.add(assign);
                 }
