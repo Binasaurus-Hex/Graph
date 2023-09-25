@@ -3,11 +3,29 @@ Vector2 :: struct {
     y: float;
 }
 
-main :: (){
+Ball :: struct {
     position: Vector2;
-    position.x = 40.;
+    velocity: Vector2;
+}
 
-    pos_ptr := &position;
+length :: (vector: *Vector2) -> float {
+    <- sqrt(vector.x * vector.x + vector.y * vector.y);
+}
 
-    print_float(*pos_ptr.x);
+normalize :: (vector: *Vector2){
+    len := length(vector);
+    vector.x = vector.x / len;
+    vector.y = vector.y / len;
+}
+
+main :: (){
+
+    position: Vector2;
+    position.x = 3.;
+    position.y = 4.;
+
+    normalize(&position);
+
+    print_float(position.x);
+    print_float(position.y);
 }

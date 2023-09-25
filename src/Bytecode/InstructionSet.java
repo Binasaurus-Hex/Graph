@@ -37,9 +37,11 @@ public enum InstructionSet {
     ASSIGN_DEREFERENCE,
     ASSIGN_ARRAY_INDEX,
     ASSIGN_STRUCT_FIELD,
+    ASSIGN_PTR_STRUCT_FIELD,
 
     ARRAY_ASSIGN,
     STRUCT_FIELD_ASSIGN,
+    PTR_STRUCT_FIELD_ASSIGN,
     PUSH_MEMORY;
 
     public long code(){

@@ -114,6 +114,11 @@ public class BytecodeGenerator {
             }
             return total_size;
         }
+        if(type instanceof PointerType){
+            return 1;
+        }
+        System.out.println("error cant calculate size of type");
+        System.exit(1);
         return -1;
     }
 
@@ -162,11 +167,23 @@ public class BytecodeGenerator {
                 VariableCall struct = (VariableCall) assign.struct;
                 VariableCall field = (VariableCall) assign.field;
                 long struct_address = context.scope.locals.get(struct.name);
-                long field_offset = get_field_offset((StructDeclaration) struct.type, field.name);
+
+                StructDeclaration struct_declaration;
+                InstructionSet instruction;
+                if(struct.type instanceof PointerType){
+                    struct_declaration = (StructDeclaration) ((PointerType)struct.type).type;
+                    instruction = InstructionSet.PTR_STRUCT_FIELD_ASSIGN;
+                }
+                else{
+                    struct_declaration = (StructDeclaration) struct.type;
+                    instruction = InstructionSet.STRUCT_FIELD_ASSIGN;
+                }
+
+                long field_offset = get_field_offset(struct_declaration, field.name);
                 VariableCall value = (VariableCall) assign.value;
                 long value_address = context.scope.locals.get(value.name);
 
-                bytecode.add(InstructionSet.STRUCT_FIELD_ASSIGN.code());
+                bytecode.add(instruction.code());
                 bytecode.add(struct_address);
                 bytecode.add(field_offset);
                 bytecode.add(value_address);
@@ -227,7 +244,13 @@ public class BytecodeGenerator {
 
                     long mem_b;
                     if(operator.operation == BinaryOperator.Operation.DOT){
-                        StructDeclaration struct = (StructDeclaration)a.type;
+                        StructDeclaration struct;
+                        if(a.type instanceof PointerType){
+                            struct = (StructDeclaration) ((PointerType)a.type).type;
+                        }
+                        else{
+                            struct = (StructDeclaration) a.type;
+                        }
                         mem_b = get_field_offset(struct, b.name);
                     }
                     else{
@@ -269,7 +292,12 @@ public class BytecodeGenerator {
                             code = InstructionSet.ASSIGN_ARRAY_INDEX.code();
                         }
                         case DOT -> {
-                            code = InstructionSet.ASSIGN_STRUCT_FIELD.code();
+                            if(a.type instanceof PointerType){
+                                code = InstructionSet.ASSIGN_PTR_STRUCT_FIELD.code();
+                            }
+                            else {
+                                code = InstructionSet.ASSIGN_STRUCT_FIELD.code();
+                            }
                         }
                         default -> code = -1;
                     };
@@ -316,7 +344,7 @@ public class BytecodeGenerator {
                 }
                 else if(external_returns.get(call.name)){
                     bytecode.add(InstructionSet.ALLOCATE.code());
-                    bytecode.add(1l); // we only support single size returns from externals
+                    bytecode.add(1L); // we only support single size returns from externals
                 }
 
                 for(Node input : call.inputs){

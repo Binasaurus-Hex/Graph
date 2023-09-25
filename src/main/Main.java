@@ -270,6 +270,7 @@ public class Main {
             if (operator.operation.ordinal() < precedence) {
                 return operator.left;
             }
+
             tokenizer.eat_token();
 
             operator.right = parse_expression(tokenizer, operator.operation.ordinal());
@@ -567,6 +568,26 @@ public class Main {
         return variable_call;
     }
 
+    static Node enrich_type(Node node, Scope scope){
+        if(node instanceof PointerType){
+            PointerType pointer_type = (PointerType) node;
+            pointer_type.type = enrich_type(pointer_type.type, scope);
+        }
+        if(node instanceof ArrayType){
+            ArrayType array_type = (ArrayType)node;
+            array_type.type = enrich_type(array_type.type, scope);
+        }
+        if(node instanceof StructType){
+            StructType struct_type = (StructType) node;
+            for(StructDeclaration struct : scope.structs){
+                if(struct.name.equals(struct_type.name)){
+                    return struct;
+                }
+            }
+        }
+        return node;
+    }
+
     static Node flatten_expression(Node expression, List<Node> generated_statements, boolean top_level, Node type, Scope scope){
         if(expression instanceof VariableCall){
             VariableCall variable_call = (VariableCall)expression;
@@ -682,7 +703,18 @@ public class Main {
 
                 if(operator.operation == BinaryOperator.Operation.DOT){
                     VariableCall struct_call = (VariableCall) operator.left;
-                    StructDeclaration struct = (StructDeclaration) struct_call.type;
+
+                    StructDeclaration struct;
+                    if(struct_call.type instanceof PointerType){
+                        struct = (StructDeclaration) ((PointerType)struct_call.type).type;
+                    }
+                    else{
+                        if(struct_call.type instanceof LiteralType){
+                            System.out.println();
+                        }
+                        struct = (StructDeclaration) struct_call.type;
+                    }
+
                     VariableCall field = (VariableCall) operator.right;
                     for(Node node : struct.body){
                         VariableDeclaration struct_field = (VariableDeclaration) node;
@@ -762,37 +794,23 @@ public class Main {
                 sub_scope.procedures.addAll(scope.procedures);
                 sub_scope.structs.addAll(scope.structs);
 
-                for(Node proc_input : procedure.inputs){
-                    VariableDeclaration declaration = (VariableDeclaration) proc_input;
+                for(int i = 0; i < procedure.inputs.size(); i++){
+                    VariableDeclaration declaration = (VariableDeclaration) procedure.inputs.get(i);
+                    declaration.type = enrich_type(declaration.type, scope);
                     sub_scope.variables.add(declaration);
                 }
-                int i = 0;
-                for(Node proc_output : procedure.outputs){
-                    if(proc_output instanceof StructType){
-                        StructType struct_type = (StructType) proc_output;
-                        for(StructDeclaration struct : scope.structs){
-                            if(struct.name.equals(struct_type.name)){
-                                procedure.outputs.set(i, struct);
-                            }
-                        }
-                    }
-                    i += 1;
+                for(int i = 0; i < procedure.outputs.size(); i++){
+                    procedure.outputs.set(i, enrich_type(procedure.outputs.get(i), scope));
                 }
+
                 procedure.block = flatten(procedure.block, sub_scope);
                 output.add(procedure);
                 continue;
             }
             if(node instanceof VariableDeclaration){
                 VariableDeclaration declaration = (VariableDeclaration) node;
-                if(declaration.type instanceof StructType){
-                    StructType struct_type = (StructType) declaration.type;
-                    for(StructDeclaration struct : scope.structs){
-                        if(struct.name.equals(struct_type.name)){
-                            declaration.type = struct;
-                            break;
-                        }
-                    }
-                }
+                declaration.type = enrich_type(declaration.type, scope);
+
                 scope.variables.add(declaration);
                 output.add(declaration);
                 if(declaration.value != null) {
