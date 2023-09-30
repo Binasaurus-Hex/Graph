@@ -89,9 +89,9 @@ public class ExternalProcedures {
         graphics.fillRect((int)x, (int)y, (int)width, (int)height);
     }
 
-    public static boolean key_pressed(long key){
+    public static long key_pressed(long key){
         synchronized (input_lock){
-            return key_pressed.getOrDefault((int)key, false);
+            return key_pressed.getOrDefault((int)key, false) ? 1 : 0;
         }
     }
 

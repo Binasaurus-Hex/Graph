@@ -3,29 +3,70 @@ Vector2 :: struct {
     y: float;
 }
 
-Ball :: struct {
+Box :: struct {
     position: Vector2;
     velocity: Vector2;
+    size: int;
 }
 
-length :: (vector: *Vector2) -> float {
-    <- sqrt(vector.x * vector.x + vector.y * vector.y);
+length :: (v: *Vector2) -> float {
+    <- sqrt(v.x * v.x + v.y * v.y);
 }
 
-normalize :: (vector: *Vector2){
-    len := length(vector);
-    vector.x = vector.x / len;
-    vector.y = vector.y / len;
+get_movement :: (movement: *Vector2){
+    W := 87;
+    A := 65;
+    S := 83;
+    D := 68;
+
+    movement.x = float(key_pressed(D) - key_pressed(A));
+    movement.y = float(key_pressed(S) - key_pressed(W));
+
+    len := length(movement);
+    if movement.x > 0. {
+        movement.x = movement.x / len;
+    }
+    if movement.y > 0. {
+        movement.y = movement.y / len;
+    }
 }
 
 main :: (){
 
-    position: Vector2;
-    position.x = 3.;
-    position.y = 4.;
+    window_width := 1000;
+    window_height := 1000;
 
-    normalize(&position);
+    open_window(window_width, window_height);
 
-    print_float(position.x);
-    print_float(position.y);
+    previous_time : float = time_seconds();
+    delta := 0.;
+
+    box: Box;
+    box.position.x = 10.;
+    box.position.y = 10.;
+
+    box.velocity.x = 200.;
+    box.velocity.y = 200.;
+
+    box.size = 40;
+
+    move: Vector2;
+
+    while true {
+        frame_begin();
+        clear_screen();
+
+        get_movement(&move);
+
+        box.position.x = box.position.x + box.velocity.x * move.x * delta;
+        box.position.y = box.position.y + box.velocity.y * move.y * delta;
+
+        fill_rect(int(box.position.x), int(box.position.y), box.size, box.size);
+
+        current_time : float = time_seconds();
+        delta = current_time - previous_time;
+        previous_time = current_time;
+
+        draw();
+    }
 }

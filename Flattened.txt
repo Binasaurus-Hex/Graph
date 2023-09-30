@@ -1,0 +1,188 @@
+length :: (v:*Vector2)->float{
+	#0:float
+	#0 = v.x
+	#1:float
+	#1 = v.x
+	#2:float
+	#2 = #0*#1
+	#3:float
+	#3 = v.y
+	#4:float
+	#4 = v.y
+	#5:float
+	#5 = #3*#4
+	#6:float
+	#6 = #2+#5
+	#7:float
+	#7 = sqrt()
+	
+}
+get_movement :: (movement:*Vector2){
+	W:int
+	#8:int
+	#8 = 87
+	W = #8
+	A:int
+	#9:int
+	#9 = 65
+	A = #9
+	S:int
+	#10:int
+	#10 = 83
+	S = #10
+	D:int
+	#11:int
+	#11 = 68
+	D = #11
+	#12:int
+	#12 = key_pressed()
+	#13:int
+	#13 = key_pressed()
+	#14:int
+	#14 = #12-#13
+	#15:float
+	#15 = float()
+	movement.x=#15
+	#16:int
+	#16 = key_pressed()
+	#17:int
+	#17 = key_pressed()
+	#18:int
+	#18 = #16-#17
+	#19:float
+	#19 = float()
+	movement.y=#19
+	len:float
+	#20:float
+	#20 = length()
+	len = #20
+	#21:float
+	#21 = movement.x
+	#22:float
+	#22 = 0.0
+	#23:bool
+	#23 = #21>#22
+	
+	#26:float
+	#26 = movement.y
+	#27:float
+	#27 = 0.0
+	#28:bool
+	#28 = #26>#27
+	
+}
+main :: (){
+	window_width:int
+	#31:int
+	#31 = 1000
+	window_width = #31
+	window_height:int
+	#32:int
+	#32 = 1000
+	window_height = #32
+	
+	previous_time:float
+	#33:float
+	#33 = time_seconds()
+	previous_time = #33
+	delta:float
+	#34:float
+	#34 = 0.0
+	delta = #34
+	box:Box
+	#35:*Vector2
+	#35 = box.position
+	#36:float
+	#36 = 10.0
+	#35.x=#36
+	#37:*Vector2
+	#37 = box.position
+	#38:float
+	#38 = 10.0
+	#37.y=#38
+	#39:*Vector2
+	#39 = box.velocity
+	#40:float
+	#40 = 200.0
+	#39.x=#40
+	#41:*Vector2
+	#41 = box.velocity
+	#42:float
+	#42 = 200.0
+	#41.y=#42
+	#43:int
+	#43 = 40
+	box.size=#43
+	move:Vector2
+	while #44{
+	
+	
+	#45:*Vector2
+	#45 = 
+	
+	#46:*Vector2
+	#46 = box.position
+	#47:*Vector2
+	#47 = box.position
+	#48:float
+	#48 = #47.x
+	#49:*Vector2
+	#49 = box.velocity
+	#50:float
+	#50 = #49.x
+	#51:float
+	#51 = move.x
+	#52:float
+	#52 = #51*delta
+	#53:float
+	#53 = #50*#52
+	#54:float
+	#54 = #48+#53
+	#46.x=#54
+	#55:*Vector2
+	#55 = box.position
+	#56:*Vector2
+	#56 = box.position
+	#57:float
+	#57 = #56.y
+	#58:*Vector2
+	#58 = box.velocity
+	#59:float
+	#59 = #58.y
+	#60:float
+	#60 = move.y
+	#61:float
+	#61 = #60*delta
+	#62:float
+	#62 = #59*#61
+	#63:float
+	#63 = #57+#62
+	#55.y=#63
+	#64:*Vector2
+	#64 = box.position
+	#65:float
+	#65 = #64.x
+	#66:int
+	#66 = int()
+	#67:*Vector2
+	#67 = box.position
+	#68:float
+	#68 = #67.y
+	#69:int
+	#69 = int()
+	#70:int
+	#70 = box.size
+	#71:int
+	#71 = box.size
+	
+	current_time:float
+	#72:float
+	#72 = time_seconds()
+	current_time = #72
+	#73:float
+	#73 = current_time-previous_time
+	delta = #73
+	previous_time = current_time
+	
+}
+}

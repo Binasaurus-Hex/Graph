@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class Main {
 
@@ -530,6 +531,17 @@ public class Main {
         return statements;
     }
 
+    static BinaryOperator fix_dot_tree(BinaryOperator dot_operator){
+        BinaryOperator fixed = dot_operator;
+        if(dot_operator.right instanceof BinaryOperator){
+            BinaryOperator right = (BinaryOperator) dot_operator.right;
+            dot_operator.right = right.left;
+            right.left = dot_operator;
+            fixed = right;
+        }
+        return fixed;
+    }
+
     static LiteralType get_type(Literal literal){
         LiteralType literal_type = new LiteralType();
         if(literal.value instanceof Double){
@@ -548,7 +560,7 @@ public class Main {
 
     static Node generate_variable_to(Node expression, List<Node> generated_statements, Node type){
         VariableDeclaration declaration = new VariableDeclaration();
-        declaration.name = String.format("generated_ident_%d", generated_name_counter++);
+        declaration.name = String.format("#%d", generated_name_counter++);
         declaration.type = type;
 
         if(type == null && expression instanceof Literal){
@@ -637,6 +649,7 @@ public class Main {
                     BinaryOperator left = (BinaryOperator) operator.left;
                     switch (left.operation){
                         case DOT -> {
+                            left = fix_dot_tree(left);
                             StructAssign struct_assign = new StructAssign();
                             struct_assign.struct = flatten_expression(left.left, generated_statements, false, null, scope);
                             struct_assign.field = left.right;
@@ -665,17 +678,17 @@ public class Main {
                 }
             }
 
-            operator.left = flatten_expression(operator.left, generated_statements, false, type, scope);
+            boolean flatten_right = true;
 
             if(operator.operation == BinaryOperator.Operation.DOT){
-                if(!(operator.right instanceof VariableCall)){
-                    System.out.println("dot operator cannot have expression on right hand side");
-                    System.exit(0);
+                operator = fix_dot_tree(operator);
+                if(operator.right instanceof VariableCall){
+                    flatten_right = false;
                 }
             }
-            else{
-                operator.right = flatten_expression(operator.right, generated_statements, false, type, scope);
-            }
+            operator.left = flatten_expression(operator.left, generated_statements, false, type, scope);
+
+            if(flatten_right) operator.right = flatten_expression(operator.right, generated_statements, false, type, scope);
 
             if(!top_level){
 
@@ -709,9 +722,6 @@ public class Main {
                         struct = (StructDeclaration) ((PointerType)struct_call.type).type;
                     }
                     else{
-                        if(struct_call.type instanceof LiteralType){
-                            System.out.println();
-                        }
                         struct = (StructDeclaration) struct_call.type;
                     }
 
@@ -721,6 +731,12 @@ public class Main {
                         if(struct_field.name.equals(field.name)){
                             type = struct_field.type;
                         }
+                    }
+
+                    if(type instanceof StructDeclaration){
+                        PointerType pointer_type = new PointerType();
+                        pointer_type.type = type;
+                        type = pointer_type;
                     }
                 }
                 // end
@@ -807,6 +823,17 @@ public class Main {
                 output.add(procedure);
                 continue;
             }
+            if(node instanceof StructDeclaration){
+                StructDeclaration struct = (StructDeclaration) node;
+                for(Node value : struct.body){
+                    if(!(value instanceof VariableDeclaration)){
+                        System.out.println("struct must only contain fields");
+                        System.exit(1);
+                    }
+                    VariableDeclaration field = (VariableDeclaration) value;
+                    field.type = enrich_type(field.type, scope);
+                }
+            }
             if(node instanceof VariableDeclaration){
                 VariableDeclaration declaration = (VariableDeclaration) node;
                 declaration.type = enrich_type(declaration.type, scope);
@@ -872,16 +899,19 @@ public class Main {
         return output;
     }
 
-    static Node convert_java_type(String java_type){
+    static LiteralType convert_java_type(String java_type){
         LiteralType literal_type = new LiteralType();
 
         literal_type.type = switch (java_type){
             case "long" -> LiteralType.Type.INT;
             case "double" -> LiteralType.Type.FLOAT;
+            case "bool" -> LiteralType.Type.BOOL;
             default -> null;
         };
         return literal_type;
     }
+
+
 
     public static void main(String[] args) {
         String program_text = read_file_as_text("main.graph");
@@ -909,6 +939,12 @@ public class Main {
                 declaration.type = convert_java_type(parameter.getType().getName());
                 external_procedure.inputs.add(declaration);
             }
+            LiteralType return_type = convert_java_type(method.getReturnType().getName());
+            if(return_type.type != null){
+                external_procedure.outputs = new ArrayList<>();
+                external_procedure.outputs.add(return_type);
+            }
+
             procedures.add(external_procedure);
         }
 
@@ -932,6 +968,8 @@ public class Main {
         global_scope.structs = structs;
 
         program = flatten(program, global_scope);
+
+        TreePrinter.print(program);
 
         BytecodeGenerator generator = new BytecodeGenerator();
         BytecodeProgram bytecode = generator.generate_bytecode(program);

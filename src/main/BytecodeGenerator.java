@@ -123,6 +123,9 @@ public class BytecodeGenerator {
     }
 
     long get_field_offset(StructDeclaration struct, String field_name){
+        if(field_name.equals("velocity")){
+            System.out.println();
+        }
         int offset = 0;
         for(Node node : struct.body){
             VariableDeclaration field = (VariableDeclaration) node;
@@ -294,9 +297,15 @@ public class BytecodeGenerator {
                         case DOT -> {
                             if(a.type instanceof PointerType){
                                 code = InstructionSet.ASSIGN_PTR_STRUCT_FIELD.code();
+                                if(type instanceof PointerType){
+                                    code = InstructionSet.ASSIGN_POINTER_FROM_STRUCT_PTR.code();
+                                }
                             }
                             else {
                                 code = InstructionSet.ASSIGN_STRUCT_FIELD.code();
+                                if(type instanceof PointerType){
+                                    code = InstructionSet.ASSIGN_POINTER_FROM_STRUCT.code();
+                                }
                             }
                         }
                         default -> code = -1;

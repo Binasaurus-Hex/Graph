@@ -97,6 +97,23 @@ public class VirtualMachine {
                     stack[base_pointer + memory_address] = stack[field_address];
                 }
 
+                case ASSIGN_POINTER_FROM_STRUCT -> {
+                    int memory_address = (int) program[program_counter++];
+                    int struct_address = base_pointer + (int)program[program_counter++];
+                    int offset = (int)program[program_counter++];
+                    int field_address = struct_address + offset;
+                    stack[base_pointer + memory_address] = field_address;
+                }
+
+                case ASSIGN_POINTER_FROM_STRUCT_PTR -> {
+                    int memory_address = (int) program[program_counter++];
+                    int struct_ptr_address = (int)program[program_counter++];
+                    int struct_address = (int)stack[base_pointer + struct_ptr_address];
+                    int offset = (int)program[program_counter++];
+                    int field_address = struct_address + offset;
+                    stack[base_pointer + memory_address] = field_address;
+                }
+
                 case ARRAY_ASSIGN -> {
                     int array_address = (int)program[program_counter++];
                     int index_address = (int)program[program_counter++];
