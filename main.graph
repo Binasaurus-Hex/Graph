@@ -14,10 +14,7 @@ length :: (v: *Vector2) -> float {
 }
 
 get_movement :: (movement: *Vector2){
-    W := 87;
-    A := 65;
-    S := 83;
-    D := 68;
+    W := 87; A := 65; S := 83; D := 68;
 
     movement.x = float(key_pressed(D) - key_pressed(A));
     movement.y = float(key_pressed(S) - key_pressed(W));
@@ -38,7 +35,7 @@ main :: (){
 
     open_window(window_width, window_height);
 
-    previous_time : float = time_seconds();
+    previous_time := time_seconds();
     delta := 0.;
 
     box: Box;
@@ -52,6 +49,9 @@ main :: (){
 
     move: Vector2;
 
+    /* block
+       comments */
+
     while true {
         frame_begin();
         clear_screen();
@@ -63,7 +63,7 @@ main :: (){
 
         fill_rect(int(box.position.x), int(box.position.y), box.size, box.size);
 
-        current_time : float = time_seconds();
+        current_time := time_seconds();
         delta = current_time - previous_time;
         previous_time = current_time;
 

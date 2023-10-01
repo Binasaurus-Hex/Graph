@@ -57,6 +57,9 @@ public class Token {
 
         MINUS("-"),
         PLUS("+"),
+
+        COMMENT_START("/*"),
+        COMMENT_END("*/"),
         FORWARD_SLASH("/"),
         STAR("*"),
 

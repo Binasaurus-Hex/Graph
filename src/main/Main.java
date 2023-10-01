@@ -79,7 +79,19 @@ public class Main {
 
         int text_index = 0;
         int last_token_index = 0;
+        boolean inside_comment = false;
         while (text_index < program_text.length()){
+
+            if(matches(Token.Type.COMMENT_END.text, program_text, text_index)){
+                inside_comment = false;
+                text_index += Token.Type.COMMENT_END.text.length();
+                last_token_index = text_index;
+                continue;
+            }
+            if(inside_comment){
+                text_index++;
+                continue;
+            }
 
             char current_char = program_text.charAt(text_index);
             boolean found_token = false;
@@ -129,9 +141,14 @@ public class Main {
                     }
 
                     Token token = new Token(token_type, text_index);
-                    tokens.add(token);
                     text_index += token_type.text.length();
                     last_token_index = text_index;
+                    if(token.type == Token.Type.COMMENT_START){
+                        inside_comment = true;
+                    }
+                    else{
+                        tokens.add(token);
+                    }
                     found_token = true;
                 }
             }
@@ -141,25 +158,6 @@ public class Main {
         }
 
         return tokens;
-    }
-
-    static void print_tokens(List<Token> tokens, String program_text){
-
-        for(Token token : tokens){
-            if(token.type == Token.Type.STRING){
-                System.out.print(String.format("S<%s>", get_string_text(program_text, token)));
-                continue;
-            }
-            if(token.type == Token.Type.IDENTIFIER){
-                System.out.print(String.format("T<%s>", get_identifier_text(program_text, token)));
-                continue;
-            }
-            if(token.type == Token.Type.INTEGER){
-                System.out.print(String.format("I<%s>", get_identifier_text(program_text,token)));
-                continue;
-            }
-            System.out.print(token.type.text);
-        }
     }
 
     interface NodeFunc {

@@ -103,7 +103,7 @@ public class BytecodeGenerator {
         }
         if(type instanceof ArrayType){
             ArrayType array = (ArrayType) type;
-            return array.size;
+            return get_size(array.type) * array.size;
         }
         if(type instanceof StructDeclaration){
             StructDeclaration struct = (StructDeclaration) type;
