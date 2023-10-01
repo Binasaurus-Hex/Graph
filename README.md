@@ -11,9 +11,10 @@ Key goals :
 - compile time execution (this is why I've added a bytecode intermediary)
 
 Features : 
-- supports bool, float, and int types
-- supports arrays of aformentioned types
-- type inference (not in all cases yet)
+- bool, float, and int types
+- arrays of aformentioned types
+- structs
+- type inference
 - pointers
 - ability to call out to java functions (limited to certain types)
 - now compiles to a intermediate bytecode, and contains a virtual machine for running the bytecode.
@@ -36,7 +37,7 @@ length :: (x: float, y: float) -> float {
 
 arrays
 ```go
-key_codes: int[3];
+key_codes: [3]int;
 key_codes[0] = 2;
 key_codes[1] = 4;
 key_codes[2] = 8;
@@ -68,36 +69,34 @@ while counter < 100 {
 
 # Moving a square around the screen
 ```go
-length :: (x: float, y: float) -> float {
-    <- sqrt(x * x + y * y);
+Vector2 :: struct {
+    x: float;
+    y: float;
 }
 
-get_move_y :: () -> float {
-    W := 87;
-    S := 83;
-
-    move_y := 0.;
-    if key_pressed(W) {
-        move_y = - 1.;
-    }
-    if key_pressed(S) {
-        move_y = 1.;
-    }
-    <- move_y;
+Box :: struct {
+    position: Vector2;
+    velocity: Vector2;
+    size: int;
 }
 
-get_move_x :: () -> float {
-    A := 65;
-    D := 68;
+length :: (v: *Vector2) -> float {
+    <- sqrt(v.x * v.x + v.y * v.y);
+}
 
-    move_x := 0.;
-    if key_pressed(A) {
-        move_x = -1.;
+get_movement :: (movement: *Vector2){
+    W := 87; A := 65; S := 83; D := 68;
+
+    movement.x = float(key_pressed(D) - key_pressed(A));
+    movement.y = float(key_pressed(S) - key_pressed(W));
+
+    len := length(movement);
+    if movement.x > 0. {
+        movement.x = movement.x / len;
     }
-    if key_pressed(D) {
-        move_x = 1.;
+    if movement.y > 0. {
+        movement.y = movement.y / len;
     }
-    <- move_x;
 }
 
 main :: (){
@@ -107,41 +106,35 @@ main :: (){
 
     open_window(window_width, window_height);
 
-    previous_time : float = time_seconds();
+    previous_time := time_seconds();
     delta := 0.;
 
-    x := 0.;
-    y := 0.;
+    box: Box;
+    box.position.x = 10.;
+    box.position.y = 10.;
 
-    vx := 200.;
-    vy := 200.;
+    box.velocity.x = 200.;
+    box.velocity.y = 200.;
 
-    move_x := 0.;
-    move_y := 0.;
+    box.size = 40;
+
+    move: Vector2;
+
+    /* block
+       comments */
 
     while true {
         frame_begin();
         clear_screen();
 
-        move_x = get_move_x();
-        move_y = get_move_y();
+        get_movement(&move);
 
-        len : float = length(move_x, move_y);
+        box.position.x = box.position.x + box.velocity.x * move.x * delta;
+        box.position.y = box.position.y + box.velocity.y * move.y * delta;
 
-        if move_x > 0. {
-            move_x = move_x / len;
-        }
-        if move_y > 0. {
-            move_y = move_y / len;
-        }
+        fill_rect(int(box.position.x), int(box.position.y), box.size, box.size);
 
-        x = x + vx * move_x * delta;
-        y = y + vy * move_y * delta;
-
-
-        fill_rect(int(x), int(y), 20, 20);
-
-        current_time : float = time_seconds();
+        current_time := time_seconds();
         delta = current_time - previous_time;
         previous_time = current_time;
 
