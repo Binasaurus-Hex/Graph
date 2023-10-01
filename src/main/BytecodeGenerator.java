@@ -224,9 +224,14 @@ public class BytecodeGenerator {
                 }
                 else if(assign.value instanceof VariableCall){
                     VariableCall variable_call = (VariableCall) assign.value;
+                    long size = get_size(variable_call.type);
                     bytecode.add(InstructionSet.ASSIGN_MEMORY.code());
                     bytecode.add(memory_address);
                     bytecode.add(context.scope.locals.get(variable_call.name));
+                    if(size > 1){
+                        System.out.printf("");
+                    }
+                    bytecode.add(size);
                 }
                 else if(assign.value instanceof BinaryOperator){
                     BinaryOperator operator = (BinaryOperator) assign.value;
@@ -428,6 +433,7 @@ public class BytecodeGenerator {
                 long return_location = context.scope.locals.get("<-0");
                 bytecode.add(return_location);
                 bytecode.add(context.scope.locals.get(value.name));
+                bytecode.add(get_size(value.type));
 
                 bytecode.add(InstructionSet.RETURN.code());
                 bytecode.add((long)return_statement.procedure.inputs.size());

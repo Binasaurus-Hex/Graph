@@ -30,6 +30,10 @@ get_movement :: (movement: *Vector2){
 
 main :: (){
 
+    acceleration: Vector2 = { 0.2, 0.3 };
+
+    print_float(acceleration.x);
+
     window_width := 1000;
     window_height := 1000;
 

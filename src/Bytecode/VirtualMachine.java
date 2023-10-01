@@ -41,8 +41,11 @@ public class VirtualMachine {
                 case ASSIGN_MEMORY -> {
                     int to_memory = (int)program[program_counter++];
                     int from_memory = (int)program[program_counter++];
-                    long value = stack[base_pointer + from_memory];
-                    stack[base_pointer + to_memory] = value;
+                    int size = (int)program[program_counter++];
+                    for(int i = 0; i < size; i++){
+                        long value = stack[base_pointer + from_memory + i];
+                        stack[base_pointer + to_memory + i] = value;
+                    }
                 }
 
                 case PUSH_MEMORY -> {

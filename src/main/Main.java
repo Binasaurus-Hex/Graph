@@ -209,6 +209,17 @@ public class Main {
                 tokenizer.eat_token();
                 return expression;
             }
+            case OPEN_BRACE -> {
+                // struct literal
+                List<Node> struct_args = parse_variadic(tokenizer,
+                        Main::parse_expression,
+                        Token.Type.OPEN_BRACE,
+                        Token.Type.COMMA,
+                        Token.Type.CLOSE_BRACE);
+                StructLiteral struct_literal = new StructLiteral();
+                struct_literal.arguments = struct_args;
+                return struct_literal;
+            }
 
             case IDENTIFIER -> {
                 Token identifier = tokenizer.eat_token();
@@ -331,7 +342,7 @@ public class Main {
 
         while (tokenizer.peek_token().type != Token.Type.CLOSE_BRACE){
             Node statement = parse_statement(tokenizer);
-            if(tokenizer.tokens.get(tokenizer.token_index -1).type != Token.Type.CLOSE_BRACE){
+            if(!is_block_statement(statement)){
                 Token semi_colon = tokenizer.peek_token();
                 if(semi_colon.type != Token.Type.SEMI_COLON){
                     Utils.print_token_error(tokenizer, "Error missing semi colon");
@@ -390,6 +401,8 @@ public class Main {
     }
 
     static Node parse_statement(Tokenizer tokenizer){
+        Node statement;
+        boolean block_statement = false;
         Token name_or_keyword = tokenizer.peek_token();
         if(name_or_keyword.type == Token.Type.IDENTIFIER){
             String name = get_identifier_text(tokenizer.program_text, name_or_keyword);
@@ -452,34 +465,6 @@ public class Main {
                     }
                 }
             }
-//            else if(next_token.type == Token.Type.EQUALS){
-//                tokenizer.eat_token(); // name
-//                tokenizer.eat_token(); // =
-//                VariableAssign assign = new VariableAssign();
-//                assign.variable_name = name;
-//                assign.value = parse_expression(tokenizer);
-//                return assign;
-//            }
-//            else if(next_token.type == Token.Type.OPEN_BRACKET){
-//                Node left = parse_expression(tokenizer);
-//                if(!(left instanceof BinaryOperator)){
-//                    Utils.print_token_error(tokenizer, "invalid array access");
-//                }
-//
-//                BinaryOperator index = (BinaryOperator) left;
-//
-//                if(tokenizer.peek_token().type != Token.Type.EQUALS){
-//                    Utils.print_token_error(tokenizer, "no assignment for array");
-//                }
-//                tokenizer.eat_token();
-//                Node value = parse_expression(tokenizer);
-//
-//                ArrayAssign array_assign = new ArrayAssign();
-//                array_assign.array = index.left;
-//                array_assign.index = index.right;
-//                array_assign.value = value;
-//                return array_assign;
-//            }
             else{
                 Node expression = parse_expression(tokenizer);
                 return expression;
@@ -512,12 +497,21 @@ public class Main {
         return null;
     }
 
+    static boolean is_block_statement(Node statement){
+        if(statement instanceof StructDeclaration) return true;
+        if(statement instanceof ProcedureDeclaration) return true;
+        if(statement instanceof While) return true;
+        if(statement instanceof If) return true;
+        return false;
+    }
+
     static List<Node> parse_program(Tokenizer tokenizer){
         List<Node> statements = new ArrayList<>();
 
         while (tokenizer.peek_token() != null){
             Node statement = parse_statement(tokenizer);
-            if(tokenizer.tokens.get(tokenizer.token_index -1).type != Token.Type.CLOSE_BRACE){
+
+            if(!is_block_statement(statement)){
                 Token semi_colon = tokenizer.peek_token();
                 if(semi_colon.type != Token.Type.SEMI_COLON){
                     Utils.print_token_error(tokenizer,"Error missing semi colon");
@@ -617,6 +611,36 @@ public class Main {
                 return expression;
             }
         }
+        if(expression instanceof StructLiteral){
+            StructLiteral literal = (StructLiteral)expression;
+            StructDeclaration struct = (StructDeclaration) type;
+            VariableDeclaration temp_struct = new VariableDeclaration();
+            temp_struct.name = String.format("#%d", generated_name_counter++);
+            temp_struct.type = type;
+            generated_statements.add(temp_struct);
+
+            VariableCall struct_call = new VariableCall();
+            struct_call.name = temp_struct.name;
+            struct_call.type = temp_struct.type;
+
+            int i = 0;
+            for(Node node : struct.body){
+                VariableDeclaration field = (VariableDeclaration) node;
+                VariableCall field_call = new VariableCall();
+                field_call.name = field.name;
+                field_call.type = field.type;
+
+                StructAssign assignment = new StructAssign();
+                assignment.struct = struct_call;
+                assignment.field = field_call;
+                assignment.value = flatten_expression(literal.arguments.get(i), generated_statements, false, field.type, scope);
+                generated_statements.add(assignment);
+                i++;
+            }
+
+            return struct_call;
+        }
+
         if(expression instanceof ProcedureCall){
             ProcedureCall procedure_call = (ProcedureCall) expression;
             ProcedureDeclaration procedure_declaration = scope.find_procedure(procedure_call.name);
@@ -966,8 +990,6 @@ public class Main {
         global_scope.structs = structs;
 
         program = flatten(program, global_scope);
-
-        TreePrinter.print(program);
 
         BytecodeGenerator generator = new BytecodeGenerator();
         BytecodeProgram bytecode = generator.generate_bytecode(program);
