@@ -37,7 +37,7 @@ length :: (x: float, y: float) -> float {
 
 arrays
 ```go
-key_codes: int[3];
+key_codes: [3]int;
 key_codes[0] = 2;
 key_codes[1] = 4;
 key_codes[2] = 8;
