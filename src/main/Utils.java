@@ -1,5 +1,10 @@
 package main;
 
+import java.lang.reflect.Array;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Comparator;
+
 public class Utils {
 
     public static void print_token_error(Tokenizer tokenizer, String message){
@@ -46,6 +51,12 @@ public class Utils {
             return name.substring(1);
         }
         return name;
+    }
+
+    public static Method[] get_external_procedures(){
+        Method[] procedures = ExternalProcedures.class.getDeclaredMethods();
+        Arrays.sort(procedures, Comparator.comparing(Method::getName));
+        return procedures;
     }
 
 }

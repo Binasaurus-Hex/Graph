@@ -25,6 +25,8 @@ public enum InstructionSet {
 
 
     JUMP,
+
+    JUMP_ABSOLUTE,
     CALL_PROCEDURE,
     RETURN,
     CALL_EXTERNAL,

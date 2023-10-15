@@ -2,7 +2,6 @@ package main;
 
 import static Bytecode.InstructionSet.*;
 
-import Bytecode.InstructionSet;
 import SyntaxNodes.*;
 
 import java.awt.*;
@@ -27,15 +26,14 @@ public class BytecodeGenerator {
         long stack_offset;
     }
 
-    BytecodeProgram generate_bytecode(List<Node> program){
-        int entry_point = -1;
+    long[] generate_bytecode(List<Node> program){
         Context global_context = new Context();
         Scope global_scope = new Scope();
         global_context.scope = global_scope;
 
         // declare externals
         long external_id = 0;
-        for(Method method : ExternalProcedures.class.getDeclaredMethods()){
+        for(Method method : Utils.get_external_procedures()){
             String name = Utils.external_name(method.getName());
             externals.put(name, external_id++);
             if(method.getReturnType().getName().equals("void")){
@@ -47,6 +45,8 @@ public class BytecodeGenerator {
         }
 
         List<Long> bytecode = new ArrayList<>();
+        bytecode.add(JUMP_ABSOLUTE.code());
+        bytecode.add(0L); // entry point
 
         // procedures
         for(Node node : program){
@@ -54,7 +54,8 @@ public class BytecodeGenerator {
                 ProcedureDeclaration procedure = (ProcedureDeclaration) node;
                 long program_line = bytecode.size();
                 if(procedure.name.equals("main")){
-                    entry_point = (int)program_line;
+                    // set entry point
+                    bytecode.set(1, program_line);
                 }
                 global_scope.labels.put(procedure.name, program_line);
                 global_scope.procedures.put(procedure.name, procedure);
@@ -95,11 +96,7 @@ public class BytecodeGenerator {
         for(int i = 0; i < bytecode.size(); i++){
             final_bytecode[i] = bytecode.get(i);
         }
-
-        BytecodeProgram bytecode_program = new BytecodeProgram();
-        bytecode_program.code = final_bytecode;
-        bytecode_program.entry_point = entry_point;
-        return bytecode_program;
+        return final_bytecode;
     }
 
     long get_size(Node type){

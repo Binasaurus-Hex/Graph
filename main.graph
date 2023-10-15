@@ -46,7 +46,7 @@ main :: () {
         fill_rect(0, 0, window_width, window_height);
 
         set_color(&red);
-        fill_rect(mouse_position.x, mouse_position.y, 100, 100);
+        fill_rect(mouse_position.x, mouse_position.y, 50, 50);
 
 
 

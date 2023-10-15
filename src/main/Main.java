@@ -3,17 +3,17 @@ package main;
 import SyntaxNodes.*;
 import Bytecode.VirtualMachine;
 
-import java.awt.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
+import java.util.*;
 
 public class Main {
 
@@ -990,9 +990,9 @@ public class Main {
 
 
     public static void main(String[] args) {
-        String program_text = read_file_as_text("main.graph");
+
+        String program_text = read_file_as_text(args[0]);
         List<Token> tokens = tokenize(program_text);
-        //print_tokens(tokens, program_text);
 
         Tokenizer tokenizer = new Tokenizer();
         tokenizer.tokens = tokens;
@@ -1046,9 +1046,20 @@ public class Main {
         program = flatten(program, global_scope);
 
         BytecodeGenerator generator = new BytecodeGenerator();
-        BytecodeProgram bytecode = generator.generate_bytecode(program);
-        VirtualMachine vm = new VirtualMachine();
+        long[] bytecode = generator.generate_bytecode(program);
 
-        vm.run(bytecode.code, bytecode.entry_point);
+        ByteBuffer buffer = ByteBuffer.allocate(bytecode.length * Long.BYTES);
+        buffer.asLongBuffer().put(bytecode);
+        try {
+            Files.write(Path.of("main.txt"), buffer.array());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (args.length == 1)return;
+        if(args[1].equals("-run") || args[1].equals("-r")){
+            VirtualMachine vm = new VirtualMachine();
+            vm.run(bytecode);
+        }
     }
 }

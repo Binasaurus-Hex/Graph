@@ -1,24 +1,24 @@
 package Bytecode;
 
-import jdk.jshell.EvalException;
 import main.ExternalProcedures;
+import main.Utils;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Arrays;
 
 public class VirtualMachine {
+
+    Method[] external_procedures = Utils.get_external_procedures();
 
     public VirtualMachine(){
     }
 
-    public void run(long[] program, int start){
+    public void run(long[] program){
         long[] stack = new long[10000];
         int stack_pointer = 0;
         int base_pointer = 0;
-        int program_counter = start;
+        int program_counter = 0;
 
         InstructionSet[] instructions = InstructionSet.values();
         while (program_counter < program.length) {
@@ -193,6 +193,10 @@ public class VirtualMachine {
                     program_counter = literal_location;
                 }
 
+                case JUMP_ABSOLUTE -> {
+                    program_counter = (int)program[program_counter++];
+                }
+
                 case JUMP_IF -> {
                     int location = (int)program[program_counter++];
                     int literal_location = program_counter + location;
@@ -212,7 +216,7 @@ public class VirtualMachine {
 
                 case CALL_EXTERNAL -> {
                     int external_index = (int)program[program_counter++];
-                    Method external_procedure = ExternalProcedures.class.getDeclaredMethods()[external_index];
+                    Method external_procedure = external_procedures[external_index];
                     Parameter[] parameters = external_procedure.getParameters();
                     Object[] args = new Object[external_procedure.getParameters().length];
 

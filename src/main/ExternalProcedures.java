@@ -41,6 +41,7 @@ public class ExternalProcedures {
     static Color color = new Color(0, 0, 0, 1);
 
     public static void open_window(long width, long height){
+        System.out.println("opening window");
         frame = new JFrame();
         frame.setSize((int)width, (int)height);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
