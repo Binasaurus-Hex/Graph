@@ -48,6 +48,31 @@ public class VirtualMachine {
                     }
                 }
 
+                case ASSIGN_VAR_FROM_LOCATION -> {
+                    int to_memory = (int)program[program_counter++];
+                    int from_location = (int)stack[base_pointer + (int)program[program_counter++]];
+                    int size = (int)program[program_counter++];
+                    for(int i = 0; i < size; i++){
+                        int addr = base_pointer + to_memory + i;
+                        if(addr > stack.length){
+                            System.out.println();
+                        }
+                        if(from_location > stack.length){
+                            System.out.printf("input");
+                        }
+                        stack[addr] = stack[from_location + i];
+                    }
+                }
+
+                case ASSIGN_VAR_TO_LOCATION -> {
+                    int to_location = (int)stack[base_pointer + (int)program[program_counter++]];
+                    int from_memory = (int)program[program_counter++];
+                    int size = (int)program[program_counter++];
+                    for(int i = 0; i < size; i++){
+                        stack[to_location + i] = stack[base_pointer + from_memory + i];
+                    }
+                }
+
                 case PUSH_MEMORY -> {
                     int memory_address = (int)program[program_counter++];
                     long value = stack[base_pointer + memory_address];
@@ -72,75 +97,27 @@ public class VirtualMachine {
                     stack[base_pointer + memory_address] = stack[value_address];
                 }
 
-                case ASSIGN_ARRAY_INDEX -> {
+                case STRUCT_LOCATION -> {
                     int memory_address = (int)program[program_counter++];
-                    int array_address = base_pointer + (int)program[program_counter++];
-
-                    int offset_address = (int)program[program_counter++];
-                    int offset = (int)stack[base_pointer + offset_address];
-                    array_address += offset;
-                    stack[base_pointer + memory_address] = stack[array_address];
+                    int struct = (int)program[program_counter++];
+                    int field = (int) program[program_counter++];
+                    stack[base_pointer + memory_address] = base_pointer + struct + field;
                 }
 
-                case ASSIGN_STRUCT_FIELD -> {
+                case STRUCT_PTR_LOCATION -> {
                     int memory_address = (int)program[program_counter++];
-                    int struct_address = base_pointer + (int)program[program_counter++];
-
-                    int offset = (int)program[program_counter++];
-                    int field_address = struct_address + offset;
-                    stack[base_pointer + memory_address] = stack[field_address];
+                    int struct_ptr = (int)stack[(int)program[program_counter++]];
+                    int field = (int) program[program_counter++];
+                    stack[base_pointer + memory_address] = base_pointer + struct_ptr + field;
                 }
 
-                case ASSIGN_PTR_STRUCT_FIELD -> {
-                    int memory_address = (int) program[program_counter++];
-                    int struct_ptr_address = (int)program[program_counter++];
-                    int struct_address = (int)stack[base_pointer + struct_ptr_address];
-                    int offset = (int)program[program_counter++];
-                    int field_address = struct_address + offset;
-                    stack[base_pointer + memory_address] = stack[field_address];
-                }
+                case ARRAY_LOCATION -> {
+                    int memory_address = (int)program[program_counter++];
+                    int array = (int)program[program_counter++];
+                    int index = (int) stack[base_pointer + (int)program[program_counter++]]; // read value of index
+                    int size = (int)program[program_counter++];
 
-                case ASSIGN_POINTER_FROM_STRUCT -> {
-                    int memory_address = (int) program[program_counter++];
-                    int struct_address = base_pointer + (int)program[program_counter++];
-                    int offset = (int)program[program_counter++];
-                    int field_address = struct_address + offset;
-                    stack[base_pointer + memory_address] = field_address;
-                }
-
-                case ASSIGN_POINTER_FROM_STRUCT_PTR -> {
-                    int memory_address = (int) program[program_counter++];
-                    int struct_ptr_address = (int)program[program_counter++];
-                    int struct_address = (int)stack[base_pointer + struct_ptr_address];
-                    int offset = (int)program[program_counter++];
-                    int field_address = struct_address + offset;
-                    stack[base_pointer + memory_address] = field_address;
-                }
-
-                case ARRAY_ASSIGN -> {
-                    int array_address = (int)program[program_counter++];
-                    int index_address = (int)program[program_counter++];
-                    int value_address = (int)program[program_counter++];
-
-                    int index = (int)stack[base_pointer + index_address];
-                    stack[base_pointer + array_address + index] = stack[base_pointer + value_address];
-                }
-
-                case STRUCT_FIELD_ASSIGN -> {
-                    int struct_address = (int) program[program_counter++];
-                    int field_offset = (int)program[program_counter++];
-                    int value_address = (int)program[program_counter++];
-
-                    stack[base_pointer + struct_address + field_offset] = stack[base_pointer + value_address];
-                }
-
-                case PTR_STRUCT_FIELD_ASSIGN -> {
-                    int struct_ptr_address = (int) program[program_counter++];
-                    int field_offset = (int)program[program_counter++];
-                    int value_address = (int)program[program_counter++];
-
-                    int struct_address = (int)stack[base_pointer + struct_ptr_address];
-                    stack[struct_address + field_offset] = stack[base_pointer + value_address];
+                    stack[base_pointer + memory_address] = base_pointer + array + index * size;
                 }
 
                 case ADD, SUBTRACT, MULTIPLY, DIVIDE, LESS_THAN, GREATER_THAN, EQUALS -> {

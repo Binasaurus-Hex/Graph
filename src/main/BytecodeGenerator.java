@@ -1,9 +1,14 @@
 package main;
 
+import static Bytecode.InstructionSet.*;
+
 import Bytecode.InstructionSet;
 import SyntaxNodes.*;
+
+import java.awt.*;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.List;
 
 public class BytecodeGenerator {
 
@@ -68,10 +73,10 @@ public class BytecodeGenerator {
                     context.scope.locals.put(String.format("<-%d", procedure.outputs.size() - i - 1), input_offset);
                 }
 
-                bytecode.add(InstructionSet.PROCEDURE_HEADER.code());
+                bytecode.add(PROCEDURE_HEADER.code());
                 context.scope.labels.putAll(global_context.scope.labels); // add all the current functions in
                 context.scope.procedures.putAll(global_context.scope.procedures);
-                bytecode.add(InstructionSet.ALLOCATE.code());
+                bytecode.add(ALLOCATE.code());
                 int allocation_index = bytecode.size();
                 bytecode.add(0L); // will be overwritten with actual stack size
 
@@ -80,7 +85,7 @@ public class BytecodeGenerator {
                 bytecode.set(allocation_index, stack_size);
 
                 if(!procedure.name.equals("main")){
-                    bytecode.add(InstructionSet.RETURN.code());
+                    bytecode.add(RETURN.code());
                     bytecode.add((long)procedure.inputs.size());
                 }
             }
@@ -114,7 +119,7 @@ public class BytecodeGenerator {
             }
             return total_size;
         }
-        if(type instanceof PointerType){
+        if(type instanceof PointerType || type instanceof Location){
             return 1;
         }
         System.out.println("error cant calculate size of type");
@@ -149,54 +154,19 @@ public class BytecodeGenerator {
                 context.scope.locals.put(declaration.name, memory_address);
                 context.scope.types.put(declaration.name, declaration.type);
             }
-            if(node instanceof ArrayAssign){
-                ArrayAssign assign = (ArrayAssign) node;
-                VariableCall array = (VariableCall)assign.array;
-                long array_address = context.scope.locals.get(array.name);
-
-                VariableCall index = (VariableCall)assign.index;
-                long index_address = context.scope.locals.get(index.name);
-
-                VariableCall value = (VariableCall)assign.value;
-                long value_address = context.scope.locals.get(value.name);
-
-                bytecode.add(InstructionSet.ARRAY_ASSIGN.code());
-                bytecode.add(array_address);
-                bytecode.add(index_address);
-                bytecode.add(value_address);
-            }
-            if(node instanceof StructAssign){
-                StructAssign assign = (StructAssign) node;
-                VariableCall struct = (VariableCall) assign.struct;
-                VariableCall field = (VariableCall) assign.field;
-                long struct_address = context.scope.locals.get(struct.name);
-
-                StructDeclaration struct_declaration;
-                InstructionSet instruction;
-                if(struct.type instanceof PointerType){
-                    struct_declaration = (StructDeclaration) ((PointerType)struct.type).type;
-                    instruction = InstructionSet.PTR_STRUCT_FIELD_ASSIGN;
-                }
-                else{
-                    struct_declaration = (StructDeclaration) struct.type;
-                    instruction = InstructionSet.STRUCT_FIELD_ASSIGN;
-                }
-
-                long field_offset = get_field_offset(struct_declaration, field.name);
-                VariableCall value = (VariableCall) assign.value;
-                long value_address = context.scope.locals.get(value.name);
-
-                bytecode.add(instruction.code());
-                bytecode.add(struct_address);
-                bytecode.add(field_offset);
-                bytecode.add(value_address);
-            }
 
             if(node instanceof VariableAssign){
-
                 VariableAssign assign = (VariableAssign) node;
                 Node type = context.scope.types.get(assign.variable_name);
                 long memory_address = context.scope.locals.get(assign.variable_name);
+
+                // location <- var          e.g. position.x = 3;
+                // var <- location          e.g. height = position.x
+                // location <- location     e.g. position.x = position.y
+
+                // var <- expression        e.g. time = previous_time
+                //                          e.g. time = 3+4
+                //                          e.g. time = get_time()
 
                 if(assign.value instanceof Literal){
                     long value = 0;
@@ -218,14 +188,23 @@ public class BytecodeGenerator {
                         }
                     }
 
-                    bytecode.add(InstructionSet.ASSIGN_LITERAL.code());
+                    bytecode.add(ASSIGN_LITERAL.code());
                     bytecode.add(memory_address);
                     bytecode.add(value);
                 }
                 else if(assign.value instanceof VariableCall){
                     VariableCall variable_call = (VariableCall) assign.value;
                     long size = get_size(variable_call.type);
-                    bytecode.add(InstructionSet.ASSIGN_MEMORY.code());
+
+                    long code = ASSIGN_MEMORY.code();
+                    if(assign.location && !(variable_call.type instanceof Location)){
+                        code = ASSIGN_VAR_TO_LOCATION.code();
+                    }
+                    else if(!assign.location && variable_call.type instanceof Location) {
+                        code = ASSIGN_VAR_FROM_LOCATION.code();
+                    }
+
+                    bytecode.add(code);
                     bytecode.add(memory_address);
                     bytecode.add(context.scope.locals.get(variable_call.name));
                     if(size > 1){
@@ -251,10 +230,37 @@ public class BytecodeGenerator {
                     }
 
                     long mem_b;
+
+                    boolean pointer_value = false;
+
+                    long array_type_size = -1;
+                    if(operator.operation == BinaryOperator.Operation.INDEX){
+                        if(a.type instanceof PointerType){
+                            PointerType pointer = (PointerType) a.type;
+                            array_type_size = get_size(pointer.type);
+                            pointer_value = true;
+                        }
+                        else if(a.type instanceof Location){
+                            Location location = (Location) a.type;
+                            array_type_size = get_size(location.type);
+                            pointer_value = true;
+                        }
+                        else{
+                            array_type_size = get_size(a.type);
+                        }
+                    }
+
                     if(operator.operation == BinaryOperator.Operation.DOT){
                         StructDeclaration struct;
                         if(a.type instanceof PointerType){
-                            struct = (StructDeclaration) ((PointerType)a.type).type;
+                            PointerType pointer = (PointerType) a.type;
+                            struct = (StructDeclaration) pointer.type;
+                            pointer_value = true;
+                        }
+                        else if(a.type instanceof Location){
+                            Location location = (Location) a.type;
+                            struct = (StructDeclaration) location.type;
+                            pointer_value = true;
                         }
                         else{
                             struct = (StructDeclaration) a.type;
@@ -265,53 +271,41 @@ public class BytecodeGenerator {
                         mem_b = context.scope.locals.get(b.name);
                     }
 
-
                     long code;
                     switch (operator.operation){
                         case LESS_THAN -> {
-                            if(literal_value_type.type == LiteralType.Type.INT)code = InstructionSet.LESS_THAN.code();
-                            else code = InstructionSet.FLOAT_LESS_THAN.code();
+                            if(literal_value_type.type == LiteralType.Type.INT)code = LESS_THAN.code();
+                            else code = FLOAT_LESS_THAN.code();
                         }
                         case GREATER_THAN -> {
-                            if(literal_value_type.type == LiteralType.Type.INT)code = InstructionSet.GREATER_THAN.code();
-                            else code = InstructionSet.FLOAT_GREATER_THAN.code();
+                            if(literal_value_type.type == LiteralType.Type.INT)code = GREATER_THAN.code();
+                            else code = FLOAT_GREATER_THAN.code();
                         }
                         case EQUALS -> {
-                            if(literal_value_type.type == LiteralType.Type.INT)code = InstructionSet.EQUALS.code();
-                            else code = InstructionSet.FLOAT_EQUALS.code();
+                            if(literal_value_type.type == LiteralType.Type.INT)code = EQUALS.code();
+                            else code = FLOAT_EQUALS.code();
                         }
                         case ADD -> {
-                            if(literal_value_type.type == LiteralType.Type.INT) code = InstructionSet.ADD.code();
-                            else code = InstructionSet.FLOAT_ADD.code();
+                            if(literal_value_type.type == LiteralType.Type.INT) code = ADD.code();
+                            else code = FLOAT_ADD.code();
                         }
                         case SUBTRACT -> {
-                            if(literal_value_type.type == LiteralType.Type.INT) code = InstructionSet.SUBTRACT.code();
-                            else code = InstructionSet.FLOAT_SUBTRACT.code();
+                            if(literal_value_type.type == LiteralType.Type.INT) code = SUBTRACT.code();
+                            else code = FLOAT_SUBTRACT.code();
                         }
                         case MULTIPLY -> {
-                            if(literal_value_type.type == LiteralType.Type.INT) code = InstructionSet.MULTIPLY.code();
-                            else code = InstructionSet.FLOAT_MULTIPLY.code();
+                            if(literal_value_type.type == LiteralType.Type.INT) code = MULTIPLY.code();
+                            else code = FLOAT_MULTIPLY.code();
                         }
                         case DIVIDE -> {
-                            if(literal_value_type.type == LiteralType.Type.INT) code = InstructionSet.DIVIDE.code();
-                            else code = InstructionSet.FLOAT_DIVIDE.code();
+                            if(literal_value_type.type == LiteralType.Type.INT) code = DIVIDE.code();
+                            else code = FLOAT_DIVIDE.code();
                         }
                         case INDEX -> {
-                            code = InstructionSet.ASSIGN_ARRAY_INDEX.code();
+                            code = pointer_value? ARRAY_PTR_LOCATION.code() : ARRAY_LOCATION.code();
                         }
                         case DOT -> {
-                            if(a.type instanceof PointerType){
-                                code = InstructionSet.ASSIGN_PTR_STRUCT_FIELD.code();
-                                if(type instanceof PointerType){
-                                    code = InstructionSet.ASSIGN_POINTER_FROM_STRUCT_PTR.code();
-                                }
-                            }
-                            else {
-                                code = InstructionSet.ASSIGN_STRUCT_FIELD.code();
-                                if(type instanceof PointerType){
-                                    code = InstructionSet.ASSIGN_POINTER_FROM_STRUCT.code();
-                                }
-                            }
+                            code = pointer_value? STRUCT_PTR_LOCATION.code() : STRUCT_LOCATION.code();
                         }
                         default -> code = -1;
                     };
@@ -320,18 +314,21 @@ public class BytecodeGenerator {
                     bytecode.add(memory_address);
                     bytecode.add(mem_a);
                     bytecode.add(mem_b);
+                    if(array_type_size > 0){
+                        bytecode.add(array_type_size);
+                    }
                 }
                 else if(assign.value instanceof UnaryOperator){
                     UnaryOperator operator = (UnaryOperator) assign.value;
                     VariableCall variable = (VariableCall) operator.node;
                     switch (operator.operation){
                         case REFERENCE -> {
-                            bytecode.add(InstructionSet.ASSIGN_ADDRESS.code());
+                            bytecode.add(ASSIGN_ADDRESS.code());
                             bytecode.add(memory_address);
                             bytecode.add(context.scope.locals.get(variable.name));
                         }
                         case DEREFERENCE -> {
-                            bytecode.add(InstructionSet.ASSIGN_DEREFERENCE.code());
+                            bytecode.add(ASSIGN_DEREFERENCE.code());
                             bytecode.add(memory_address);
                             bytecode.add(context.scope.locals.get(variable.name));
                         }
@@ -340,7 +337,7 @@ public class BytecodeGenerator {
 
                 else if(assign.value instanceof ProcedureCall){
                     generate_bytecode(Collections.singletonList(assign.value), bytecode, context);
-                    bytecode.add(InstructionSet.ASSIGN_POP.code());
+                    bytecode.add(ASSIGN_POP.code());
                     bytecode.add(memory_address);
                 }
             }
@@ -352,28 +349,28 @@ public class BytecodeGenerator {
                     ProcedureDeclaration procedure = context.scope.procedures.get(call.name);
                     for(Node output : procedure.outputs){
                         long size = get_size(output);
-                        bytecode.add(InstructionSet.ALLOCATE.code());
+                        bytecode.add(ALLOCATE.code());
                         bytecode.add(size);
                     }
                 }
                 else if(external_returns.get(call.name)){
-                    bytecode.add(InstructionSet.ALLOCATE.code());
+                    bytecode.add(ALLOCATE.code());
                     bytecode.add(1L); // we only support single size returns from externals
                 }
 
                 for(Node input : call.inputs){
                     VariableCall variable_call = (VariableCall) input; // assumed
 
-                    bytecode.add(InstructionSet.PUSH_MEMORY.code());
+                    bytecode.add(PUSH_MEMORY.code());
                     bytecode.add(context.scope.locals.get(variable_call.name));
                 }
 
                 if(call.external){
-                    bytecode.add(InstructionSet.CALL_EXTERNAL.code());
+                    bytecode.add(CALL_EXTERNAL.code());
                     bytecode.add(externals.get(call.name));
                 }
                 else{
-                    bytecode.add(InstructionSet.CALL_PROCEDURE.code());
+                    bytecode.add(CALL_PROCEDURE.code());
                     long procedure_location = context.scope.labels.get(call.name);
                     bytecode.add(procedure_location);
                 }
@@ -382,7 +379,7 @@ public class BytecodeGenerator {
             if(node instanceof If){
                 If if_statement = (If) node;
                 VariableCall var_call = (VariableCall) if_statement.condition;
-                bytecode.add(InstructionSet.JUMP_IF_NOT.code());
+                bytecode.add(JUMP_IF_NOT.code());
 
                 List<Long> block_bytecode = new ArrayList<>();
                 generate_bytecode(if_statement.block, block_bytecode, context);
@@ -397,7 +394,7 @@ public class BytecodeGenerator {
 
                 List<Long> block_bytecode = new ArrayList<>();
                 generate_bytecode(while_statement.block, block_bytecode, context);
-                bytecode.add(InstructionSet.JUMP.code());
+                bytecode.add(JUMP.code());
                 bytecode.add((long)block_bytecode.size());
 
                 long block = bytecode.size();
@@ -407,7 +404,7 @@ public class BytecodeGenerator {
                 List<Long> condition = new ArrayList<>();
                 generate_bytecode(while_statement.condition_block, condition, context);
                 bytecode.addAll(condition);
-                bytecode.add(InstructionSet.JUMP_IF.code());
+                bytecode.add(JUMP_IF.code());
                 bytecode.add(block - bytecode.size() - 1);
                 VariableCall condition_var = (VariableCall) while_statement.condition;
                 bytecode.add(context.scope.locals.get(condition_var.name));
@@ -429,13 +426,13 @@ public class BytecodeGenerator {
             if(node instanceof Return){
                 Return return_statement = (Return) node;
                 VariableCall value = (VariableCall) return_statement.value;
-                bytecode.add(InstructionSet.ASSIGN_MEMORY.code());
+                bytecode.add(ASSIGN_MEMORY.code());
                 long return_location = context.scope.locals.get("<-0");
                 bytecode.add(return_location);
                 bytecode.add(context.scope.locals.get(value.name));
                 bytecode.add(get_size(value.type));
 
-                bytecode.add(InstructionSet.RETURN.code());
+                bytecode.add(RETURN.code());
                 bytecode.add((long)return_statement.procedure.inputs.size());
             }
         }

@@ -3,74 +3,17 @@ Vector2 :: struct {
     y: float;
 }
 
-Box :: struct {
-    position: Vector2;
-    velocity: Vector2;
-    size: int;
-}
+main :: () {
+    points: [3]float;
+    points[0] = 3.2;
+    points[1] = 4.3;
+    points[2] = 5.4;
 
-length :: (v: *Vector2) -> float {
-    <- sqrt(v.x * v.x + v.y * v.y);
-}
+    i: int = 0;
 
-get_movement :: (movement: *Vector2){
-    W := 87; A := 65; S := 83; D := 68;
-
-    movement.x = float(key_pressed(D) - key_pressed(A));
-    movement.y = float(key_pressed(S) - key_pressed(W));
-
-    len := length(movement);
-    if movement.x > 0. {
-        movement.x = movement.x / len;
-    }
-    if movement.y > 0. {
-        movement.y = movement.y / len;
-    }
-}
-
-main :: (){
-
-    acceleration: Vector2 = { 0.2, 0.3 };
-
-    print_float(acceleration.x);
-
-    window_width := 1000;
-    window_height := 1000;
-
-    open_window(window_width, window_height);
-
-    previous_time := time_seconds();
-    delta := 0.;
-
-    box: Box;
-    box.position.x = 10.;
-    box.position.y = 10.;
-
-    box.velocity.x = 200.;
-    box.velocity.y = 200.;
-
-    box.size = 40;
-
-    move: Vector2;
-
-    /* block
-       comments */
-
-    while true {
-        frame_begin();
-        clear_screen();
-
-        get_movement(&move);
-
-        box.position.x = box.position.x + box.velocity.x * move.x * delta;
-        box.position.y = box.position.y + box.velocity.y * move.y * delta;
-
-        fill_rect(int(box.position.x), int(box.position.y), box.size, box.size);
-
-        current_time := time_seconds();
-        delta = current_time - previous_time;
-        previous_time = current_time;
-
-        draw();
+    while i < 3 {
+        value := points[i];
+        print_float(value);
+        i = i + 1;
     }
 }

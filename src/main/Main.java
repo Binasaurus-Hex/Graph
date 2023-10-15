@@ -3,6 +3,7 @@ package main;
 import SyntaxNodes.*;
 import Bytecode.VirtualMachine;
 
+import java.awt.*;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -562,6 +563,7 @@ public class Main {
         generated_statements.add(declaration);
 
         VariableAssign assign = new VariableAssign();
+        assign.location = declaration.type instanceof Location;
         assign.variable_name = declaration.name;
         assign.value = expression;
         generated_statements.add(assign);
@@ -663,88 +665,34 @@ public class Main {
         if(expression instanceof BinaryOperator){
             BinaryOperator operator = (BinaryOperator) expression;
 
-            if(operator.operation == BinaryOperator.Operation.ASSIGN){
-                // assign to array
-                // assign to variable
-                // assign to struct
-                if(operator.left instanceof BinaryOperator){
-                    BinaryOperator left = (BinaryOperator) operator.left;
-                    switch (left.operation){
-                        case DOT -> {
-                            left = fix_dot_tree(left);
-                            StructAssign struct_assign = new StructAssign();
-                            struct_assign.struct = flatten_expression(left.left, generated_statements, false, null, scope);
-                            struct_assign.field = left.right;
-                            struct_assign.value = flatten_expression(operator.right, generated_statements, false, null, scope);
-                            return struct_assign;
-                        }
-                        case INDEX -> {
-                            ArrayAssign array_assign = new ArrayAssign();
-                            array_assign.array = flatten_expression(left.left, generated_statements, false, null, scope);
-                            array_assign.index = flatten_expression(left.right, generated_statements, false, LiteralType.INT(), scope);
-                            array_assign.value = flatten_expression(operator.right, generated_statements, false, null, scope);
-                            return array_assign;
-                        }
-                    }
-                }
-                else{
-                    VariableAssign variable_assign = new VariableAssign();
-                    operator.left = flatten_expression(operator.left, generated_statements, false, null, scope);
-                    operator.right = flatten_expression(operator.right, generated_statements, false, null, scope);
-
-                    VariableCall left = (VariableCall) operator.left;
-                    VariableCall right = (VariableCall) operator.right;
-                    variable_assign.variable_name = left.name;
-                    variable_assign.value = right;
-                    return variable_assign;
-                }
-            }
-
             boolean flatten_right = true;
-
             if(operator.operation == BinaryOperator.Operation.DOT){
                 operator = fix_dot_tree(operator);
-                if(operator.right instanceof VariableCall){
-                    flatten_right = false;
-                }
+                flatten_right = false;
             }
-            operator.left = flatten_expression(operator.left, generated_statements, false, type, scope);
 
-            if(flatten_right) operator.right = flatten_expression(operator.right, generated_statements, false, type, scope);
+            operator.left = flatten_expression(operator.left, generated_statements, false, null, scope);
+            if(flatten_right)  operator.right = flatten_expression(operator.right, generated_statements, false, null, scope);
 
-            if(!top_level){
+            VariableCall left = (VariableCall) operator.left;
+            VariableCall right = (VariableCall) operator.right;
 
-                // calculate return type
-                if(operator.operation.is_comparison()){
-                    LiteralType literal_type = new LiteralType();
-                    literal_type.type = LiteralType.Type.BOOL;
-                    type = literal_type;
-                }
-                if(type == null){
-                    if(operator.left instanceof VariableCall){
-                        VariableCall left = (VariableCall)operator.left;
-                        type = left.type;
-                    }
-                    else{
-                        System.out.println();
-                    }
-                }
+            type = left.type;
 
-                if(operator.operation == BinaryOperator.Operation.INDEX){
-                    VariableCall array = (VariableCall) operator.left;
-                    ArrayType array_type = (ArrayType) array.type;
-                    type = array_type.type;
-                }
-
-                if(operator.operation == BinaryOperator.Operation.DOT){
-                    VariableCall struct_call = (VariableCall) operator.left;
-
+            switch (operator.operation){
+                case DOT -> {
+                    Node struct_type = left.type;
                     StructDeclaration struct;
-                    if(struct_call.type instanceof PointerType){
-                        struct = (StructDeclaration) ((PointerType)struct_call.type).type;
+                    if(struct_type instanceof Location){
+                        Location location = (Location) struct_type;
+                        struct = (StructDeclaration) location.type;
+                    }
+                    else if(struct_type instanceof PointerType){
+                        PointerType pointer = (PointerType) struct_type;
+                        struct = (StructDeclaration) pointer.type;
                     }
                     else{
-                        struct = (StructDeclaration) struct_call.type;
+                        struct = (StructDeclaration) struct_type;
                     }
 
                     VariableCall field = (VariableCall) operator.right;
@@ -754,20 +702,47 @@ public class Main {
                             type = struct_field.type;
                         }
                     }
-
-                    if(type instanceof StructDeclaration){
-                        PointerType pointer_type = new PointerType();
-                        pointer_type.type = type;
-                        type = pointer_type;
-                    }
+                    Location location = new Location();
+                    location.type = type;
+                    type = location;
                 }
-                // end
+                case INDEX -> {
+                    Node array_type = left.type;
+                    ArrayType array;
+                    if(array_type instanceof Location){
+                        Location location = (Location) array_type;
+                        array = (ArrayType) location.type;
+                    }
+                    else if(array_type instanceof PointerType){
+                        PointerType pointer = (PointerType) array_type;
+                        array = (ArrayType) pointer.type;
+                    }
+                    else {
+                        array = (ArrayType) array_type;
+                    }
 
-                return generate_variable_to(operator, generated_statements, type);
+                    type = array.type;
+
+                    Location location = new Location();
+                    location.type = type;
+                    type = location;
+                }
+                case ASSIGN -> {
+                    VariableAssign variable_assign = new VariableAssign();
+                    variable_assign.variable_name = left.name;
+                    variable_assign.location = left.type instanceof Location;
+                    variable_assign.value = right;
+                    return variable_assign;
+                }
             }
-            else{
-                System.out.println("top level binary operator?");
+
+            if(operator.operation.is_comparison()){
+                LiteralType literal_type = new LiteralType();
+                literal_type.type = LiteralType.Type.BOOL;
+                type = literal_type;
             }
+
+            return generate_variable_to(operator, generated_statements, type);
         }
         if(expression instanceof UnaryOperator){
             UnaryOperator operator = (UnaryOperator) expression;
@@ -864,6 +839,8 @@ public class Main {
                 output.add(declaration);
                 if(declaration.value != null) {
                     VariableAssign assign = new VariableAssign();
+                    assign.location = declaration.type instanceof Location;
+
                     assign.variable_name = declaration.name;
                     assign.value = declaration.value;
                     declaration.value = null;
@@ -907,8 +884,10 @@ public class Main {
                 sub_scope.enclosing_procedure = scope.enclosing_procedure;
                 sub_scope.variables = new ArrayList<>();
                 sub_scope.procedures = new ArrayList<>();
+                sub_scope.structs = new ArrayList<>();
                 sub_scope.variables.addAll(scope.variables);
                 sub_scope.procedures.addAll(scope.procedures);
+                sub_scope.structs.addAll(scope.structs);
 
                 while_statement.condition = flatten_expression(while_statement.condition, while_statement.condition_block, false, null, sub_scope);
                 while_statement.block = flatten(while_statement.block, sub_scope);
