@@ -54,12 +54,6 @@ public class VirtualMachine {
                     int size = (int)program[program_counter++];
                     for(int i = 0; i < size; i++){
                         int addr = base_pointer + to_memory + i;
-                        if(addr > stack.length){
-                            System.out.println();
-                        }
-                        if(from_location > stack.length){
-                            System.out.printf("input");
-                        }
                         stack[addr] = stack[from_location + i];
                     }
                 }
@@ -106,9 +100,9 @@ public class VirtualMachine {
 
                 case STRUCT_PTR_LOCATION -> {
                     int memory_address = (int)program[program_counter++];
-                    int struct_ptr = (int)stack[(int)program[program_counter++]];
+                    int struct_ptr = (int)stack[base_pointer + (int)program[program_counter++]];
                     int field = (int) program[program_counter++];
-                    stack[base_pointer + memory_address] = base_pointer + struct_ptr + field;
+                    stack[base_pointer + memory_address] = struct_ptr + field;
                 }
 
                 case ARRAY_LOCATION -> {
@@ -118,6 +112,15 @@ public class VirtualMachine {
                     int size = (int)program[program_counter++];
 
                     stack[base_pointer + memory_address] = base_pointer + array + index * size;
+                }
+
+                case ARRAY_PTR_LOCATION -> {
+                    int memory_address = (int)program[program_counter++];
+                    int array_ptr = (int)stack[base_pointer + (int)program[program_counter++]];
+                    int index = (int) stack[base_pointer + (int)program[program_counter++]]; // read value of index
+                    int size = (int)program[program_counter++];
+
+                    stack[base_pointer + memory_address] = array_ptr + index * size;
                 }
 
                 case ADD, SUBTRACT, MULTIPLY, DIVIDE, LESS_THAN, GREATER_THAN, EQUALS -> {

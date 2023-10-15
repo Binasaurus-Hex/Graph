@@ -60,6 +60,8 @@ public class Token {
 
         COMMENT_START("/*"),
         COMMENT_END("*/"),
+
+        COMMENT_LINE("//"),
         FORWARD_SLASH("/"),
         STAR("*"),
 

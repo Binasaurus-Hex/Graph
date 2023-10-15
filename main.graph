@@ -1,19 +1,16 @@
 Vector2 :: struct {
-    x: float;
-    y: float;
+    x: int;
+    y: int;
+    values: [3]int;
+}
+
+Box :: struct {
+    points: [4]Vector2;
 }
 
 main :: () {
-    points: [3]float;
-    points[0] = 3.2;
-    points[1] = 4.3;
-    points[2] = 5.4;
+    boxes: [5]Box;
 
-    i: int = 0;
-
-    while i < 3 {
-        value := points[i];
-        print_float(value);
-        i = i + 1;
-    }
+    boxes[0].points[0].values[1] = 25;
+    print(boxes[0].points[0].values[1]);
 }

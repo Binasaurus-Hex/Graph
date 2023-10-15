@@ -81,17 +81,31 @@ public class Main {
         int text_index = 0;
         int last_token_index = 0;
         boolean inside_comment = false;
+        boolean inside_line_comment = false;
         while (text_index < program_text.length()){
 
-            if(matches(Token.Type.COMMENT_END.text, program_text, text_index)){
-                inside_comment = false;
-                text_index += Token.Type.COMMENT_END.text.length();
-                last_token_index = text_index;
-                continue;
-            }
             if(inside_comment){
-                text_index++;
-                continue;
+                if(matches(Token.Type.COMMENT_END.text, program_text, text_index)){
+                    inside_comment = false;
+                    text_index += Token.Type.COMMENT_END.text.length();
+                    last_token_index = text_index;
+                    continue;
+                }
+                else{
+                    text_index++;
+                    continue;
+                }
+            }
+            if(inside_line_comment){
+                 if(matches(Token.Type.NEWLINE.text, program_text, text_index)){
+                     inside_line_comment = false;
+                     text_index += Token.Type.NEWLINE.text.length();
+                     last_token_index = text_index;
+                 }
+                 else{
+                     text_index++;
+                     continue;
+                 }
             }
 
             char current_char = program_text.charAt(text_index);
@@ -146,6 +160,9 @@ public class Main {
                     last_token_index = text_index;
                     if(token.type == Token.Type.COMMENT_START){
                         inside_comment = true;
+                    }
+                    if(token.type == Token.Type.COMMENT_LINE){
+                        inside_line_comment = true;
                     }
                     else{
                         tokens.add(token);
@@ -551,7 +568,7 @@ public class Main {
 
     static int generated_name_counter = 0;
 
-    static Node generate_variable_to(Node expression, List<Node> generated_statements, Node type){
+    static VariableCall generate_variable_to(Node expression, List<Node> generated_statements, Node type){
         VariableDeclaration declaration = new VariableDeclaration();
         declaration.name = String.format("#%d", generated_name_counter++);
         declaration.type = type;
@@ -650,7 +667,12 @@ public class Main {
 
             for(int i = 0; i < procedure_call.inputs.size(); i++){
                 VariableDeclaration input = (VariableDeclaration) procedure_declaration.inputs.get(i);
-                procedure_call.inputs.set(i, flatten_expression(procedure_call.inputs.get(i), generated_statements, false, input.type, scope));
+                VariableCall flattened_input = (VariableCall) flatten_expression (procedure_call.inputs.get(i), generated_statements, false, input.type, scope);
+                if(flattened_input.type instanceof Location){
+                    Location location = (Location) flattened_input.type;
+                    flattened_input = generate_variable_to(flattened_input, generated_statements, location.type);
+                }
+                procedure_call.inputs.set(i, flattened_input);
             }
 
             if(!(procedure_declaration.outputs == null || procedure_declaration.outputs.isEmpty())){
@@ -733,6 +755,16 @@ public class Main {
                     variable_assign.location = left.type instanceof Location;
                     variable_assign.value = right;
                     return variable_assign;
+                }
+                default -> {
+                    if(left.type instanceof Location){
+                        Location location = (Location) left.type;
+                        operator.left = generate_variable_to(left, generated_statements, location.type);
+                    }
+                    if(right.type instanceof Location){
+                        Location location = (Location) right.type;
+                        operator.right = generate_variable_to(right, generated_statements, location.type);
+                    }
                 }
             }
 

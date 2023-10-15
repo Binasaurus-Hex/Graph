@@ -233,20 +233,20 @@ public class BytecodeGenerator {
 
                     boolean pointer_value = false;
 
-                    long array_type_size = -1;
+                    ArrayType array = null;
                     if(operator.operation == BinaryOperator.Operation.INDEX){
                         if(a.type instanceof PointerType){
                             PointerType pointer = (PointerType) a.type;
-                            array_type_size = get_size(pointer.type);
+                            array = (ArrayType) pointer.type;
                             pointer_value = true;
                         }
                         else if(a.type instanceof Location){
                             Location location = (Location) a.type;
-                            array_type_size = get_size(location.type);
+                            array = (ArrayType) location.type;
                             pointer_value = true;
                         }
                         else{
-                            array_type_size = get_size(a.type);
+                            array = (ArrayType) a.type;
                         }
                     }
 
@@ -314,8 +314,8 @@ public class BytecodeGenerator {
                     bytecode.add(memory_address);
                     bytecode.add(mem_a);
                     bytecode.add(mem_b);
-                    if(array_type_size > 0){
-                        bytecode.add(array_type_size);
+                    if(array != null){
+                        bytecode.add(get_size(array.type));
                     }
                 }
                 else if(assign.value instanceof UnaryOperator){
