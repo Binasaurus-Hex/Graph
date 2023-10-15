@@ -5,6 +5,7 @@ import Bytecode.VirtualMachine;
 
 import java.awt.*;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.nio.file.Files;
@@ -237,6 +238,17 @@ public class Main {
                 StructLiteral struct_literal = new StructLiteral();
                 struct_literal.arguments = struct_args;
                 return struct_literal;
+            }
+            case OPEN_BRACKET -> {
+                // array literal
+                List<Node> array_args = parse_variadic(tokenizer,
+                        Main::parse_expression,
+                        Token.Type.OPEN_BRACKET,
+                        Token.Type.COMMA,
+                        Token.Type.CLOSE_BRACKET);
+                ArrayLiteral array_literal = new ArrayLiteral();
+                array_literal.arguments = array_args;
+                return array_literal;
             }
 
             case IDENTIFIER -> {
@@ -568,9 +580,13 @@ public class Main {
 
     static int generated_name_counter = 0;
 
+    static String get_unique_name(){
+        return String.format("#%d", generated_name_counter++);
+    }
+
     static VariableCall generate_variable_to(Node expression, List<Node> generated_statements, Node type){
         VariableDeclaration declaration = new VariableDeclaration();
-        declaration.name = String.format("#%d", generated_name_counter++);
+        declaration.name = get_unique_name();
         declaration.type = type;
 
         if(type == null && expression instanceof Literal){
@@ -633,14 +649,18 @@ public class Main {
         if(expression instanceof StructLiteral){
             StructLiteral literal = (StructLiteral)expression;
             StructDeclaration struct = (StructDeclaration) type;
-            VariableDeclaration temp_struct = new VariableDeclaration();
-            temp_struct.name = String.format("#%d", generated_name_counter++);
-            temp_struct.type = type;
-            generated_statements.add(temp_struct);
 
-            VariableCall struct_call = new VariableCall();
-            struct_call.name = temp_struct.name;
-            struct_call.type = temp_struct.type;
+            // make an anonymous struct
+            VariableDeclaration temp_struct = new VariableDeclaration();
+            temp_struct.name = get_unique_name();
+            temp_struct.type = type;
+
+            generated_statements.add(temp_struct);
+            scope.variables.add(temp_struct);
+
+            VariableCall temp_struct_call = new VariableCall();
+            temp_struct_call.name = temp_struct.name;
+            temp_struct_call.type = temp_struct.type;
 
             int i = 0;
             for(Node node : struct.body){
@@ -649,15 +669,38 @@ public class Main {
                 field_call.name = field.name;
                 field_call.type = field.type;
 
-                StructAssign assignment = new StructAssign();
-                assignment.struct = struct_call;
-                assignment.field = field_call;
-                assignment.value = flatten_expression(literal.arguments.get(i), generated_statements, false, field.type, scope);
+                BinaryOperator assign = new BinaryOperator();
+                assign.operation = BinaryOperator.Operation.ASSIGN;
+
+                BinaryOperator dot = new BinaryOperator();
+                dot.operation = BinaryOperator.Operation.DOT;
+
+                dot.left = temp_struct_call;
+                dot.right = field_call;
+
+                assign.left = dot;
+                assign.right = literal.arguments.get(i);
+
+                VariableAssign assignment = (VariableAssign) flatten_expression(assign, generated_statements, false, null, scope);
+
                 generated_statements.add(assignment);
                 i++;
             }
 
-            return struct_call;
+            return temp_struct_call;
+        }
+
+        if(expression instanceof ArrayLiteral){
+            ArrayLiteral array_literal = (ArrayLiteral) expression;
+            ArrayType array_type = (ArrayType) type;
+
+            VariableDeclaration temp_array = new VariableDeclaration();
+            temp_array.name = get_unique_name();
+            temp_array.type = array_type;
+
+            for(int i = 0; i < array_type.size; i++){
+
+            }
         }
 
         if(expression instanceof ProcedureCall){

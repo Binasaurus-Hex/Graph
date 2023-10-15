@@ -2,8 +2,7 @@ package main;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.awt.image.BufferStrategy;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +36,10 @@ public class ExternalProcedures {
     static final Object input_lock = new Object();
     static Map<Integer, Boolean> key_pressed = new HashMap<>();
 
+    static Point mouse_position = new Point();
+
+    static Color color = new Color(0, 0, 0, 1);
+
     public static void open_window(long width, long height){
         frame = new JFrame();
         frame.setSize((int)width, (int)height);
@@ -44,7 +47,7 @@ public class ExternalProcedures {
         canvas = new Canvas();
         frame.add(canvas);
         frame.setVisible(true);
-        frame.addKeyListener(new KeyAdapter() {
+        canvas.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 synchronized (input_lock){
@@ -59,16 +62,32 @@ public class ExternalProcedures {
                 }
             }
         });
+
+        canvas.addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                mouse_position = e.getPoint();
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                mouse_position = e.getPoint();
+            }
+        });
     }
 
     public static void frame_begin(){
         if(canvas.getBufferStrategy() == null){
-            canvas.createBufferStrategy(3);
+            canvas.createBufferStrategy(2);
         }
         else{
             buffer = canvas.getBufferStrategy();
             graphics = (Graphics2D) buffer.getDrawGraphics();
         }
+    }
+
+    public static void extern_set_colour(double r, double g, double b, double a){
+        color = new Color((float)r, (float)g, (float)b, (float)a);
     }
 
     public static void clear_screen(){
@@ -85,14 +104,20 @@ public class ExternalProcedures {
 
     public static void fill_rect(long x, long y, long width, long height){
         if(graphics == null)return;
-        graphics.setColor(Color.BLUE);
+        graphics.setColor(color);
         graphics.fillRect((int)x, (int)y, (int)width, (int)height);
     }
 
     public static long key_pressed(long key){
-        synchronized (input_lock){
-            return key_pressed.getOrDefault((int)key, false) ? 1 : 0;
-        }
+        return key_pressed.getOrDefault((int)key, false) ? 1 : 0;
+    }
+
+    public static long get_mouse_x(){
+        return mouse_position.x;
+    }
+
+    public static long get_mouse_y(){
+        return mouse_position.y;
     }
 
     public static double sqrt(double x){

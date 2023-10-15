@@ -1,16 +1,55 @@
 Vector2 :: struct {
-    x: int;
-    y: int;
-    values: [3]int;
+    x: float;
+    y: float;
 }
 
-Box :: struct {
-    points: [4]Vector2;
+Vector2i :: struct {
+    x: int;
+    y: int;
+}
+
+Color :: struct {
+    r: float;
+    g: float;
+    b: float;
+    a: float;
+}
+
+set_color :: (color: *Color){
+    extern_set_colour(color.r, color.g, color.b, color.a);
+}
+
+get_mouse_position :: (position: *Vector2i){
+    position.x = get_mouse_x();
+    position.y = get_mouse_y();
 }
 
 main :: () {
-    boxes: [5]Box;
+    window_width := 1000;
+    window_height := 1000;
 
-    boxes[0].points[0].values[1] = 25;
-    print(boxes[0].points[0].values[1]);
+    open_window(1000, 1000);
+
+    // colours
+    red: Color = { 1., 0., 0., 1.};
+    blue: Color = { 0., 0., 1., 1. };
+    black: Color = { 0. , 0. , 0. , 1. };
+
+    mouse_position: Vector2i;
+
+    while true {
+        frame_begin();
+
+        get_mouse_position(&mouse_position);
+
+        set_color(&black);
+        fill_rect(0, 0, window_width, window_height);
+
+        set_color(&red);
+        fill_rect(mouse_position.x, mouse_position.y, 100, 100);
+
+
+
+        draw();
+    }
 }
