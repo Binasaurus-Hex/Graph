@@ -7,12 +7,14 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Struct;
 import java.util.*;
 
 public class Main {
@@ -564,6 +566,74 @@ public class Main {
         return fixed;
     }
 
+    static boolean types_equal(Node a, Node b){
+
+        // nested structures
+        if(a instanceof Location){
+            Location location_a = (Location) a;
+            if(! (b instanceof Location)){
+                return types_equal(location_a.type, b);
+            }
+            Location location_b = (Location) b;
+            return types_equal(location_a.type, location_b.type);
+        }
+        if(b instanceof Location){
+            Location location_b = (Location) b;
+            return types_equal(location_b.type, a);
+        }
+        if(a instanceof PointerType){
+            if(! (b instanceof PointerType))return false;
+            PointerType pointer_a = (PointerType) a;
+            PointerType pointer_b = (PointerType) b;
+            return types_equal(pointer_a.type, pointer_b.type);
+        }
+        if(a instanceof ArrayType){
+            if(!(b instanceof ArrayType))return false;
+            ArrayType array_a = (ArrayType) a;
+            ArrayType array_b = (ArrayType) b;
+            return types_equal(array_a.type, array_b.type) && array_a.size == array_b.size;
+        }
+
+        if(a instanceof StructDeclaration){
+            if(! (b instanceof StructDeclaration))return false;
+            StructDeclaration struct_a = (StructDeclaration) a;
+            StructDeclaration struct_b = (StructDeclaration) b;
+            return struct_a.name.equals(struct_b.name);
+        }
+
+        if(a instanceof LiteralType){
+            if(! (b instanceof LiteralType))return false;
+            LiteralType literal_a = (LiteralType) a;
+            LiteralType literal_b = (LiteralType) b;
+            return literal_a.type == literal_b.type;
+        }
+        return false;
+    }
+
+    static String type_to_string(Node type){
+        if(type instanceof PointerType){
+            PointerType pointer = (PointerType) type;
+            return "*"+type_to_string(pointer.type);
+        }
+        if(type instanceof ArrayType){
+            ArrayType array = (ArrayType)type;
+            return "["+array.size+"]"+type_to_string(array.type);
+        }
+        if(type instanceof StructDeclaration){
+            StructDeclaration struct = (StructDeclaration) type;
+            return struct.name;
+        }
+        if(type instanceof LiteralType){
+            LiteralType literal = (LiteralType) type;
+            return switch (literal.type){
+                case INT -> "int";
+                case FLOAT -> "float";
+                case BOOL -> "bool";
+            };
+        }
+        return "unknown type";
+    }
+
     static LiteralType get_type(Literal literal){
         LiteralType literal_type = new LiteralType();
         if(literal.value instanceof Double){
@@ -712,6 +782,11 @@ public class Main {
             for(int i = 0; i < procedure_call.inputs.size(); i++){
                 VariableDeclaration input = (VariableDeclaration) procedure_declaration.inputs.get(i);
                 VariableCall flattened_input = (VariableCall) flatten_expression (procedure_call.inputs.get(i), generated_statements, false, input.type, scope);
+                if(!types_equal(input.type, flattened_input.type)){
+                    System.out.println(String.format("error type mismatch %s cannot be assigned to variable of type %s", input.name, type_to_string(flattened_input.type)));
+                    System.exit(0);
+                }
+
                 if(flattened_input.type instanceof Location){
                     Location location = (Location) flattened_input.type;
                     flattened_input = generate_variable_to(flattened_input, generated_statements, location.type);
@@ -798,12 +873,17 @@ public class Main {
                     variable_assign.variable_name = left.name;
                     variable_assign.location = left.type instanceof Location;
                     variable_assign.value = right;
+                    if(!types_equal(left.type, right.type)){
+                        System.out.println(String.format("error type mismatch %s cannot be assigned to variable of type %s", left.name, type_to_string(right.type)));
+                        System.exit(0);
+                    }
                     return variable_assign;
                 }
                 default -> {
                     if(left.type instanceof Location){
                         Location location = (Location) left.type;
                         operator.left = generate_variable_to(left, generated_statements, location.type);
+                        type = location.type;
                     }
                     if(right.type instanceof Location){
                         Location location = (Location) right.type;

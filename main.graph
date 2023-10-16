@@ -3,11 +3,20 @@ Vector2i :: struct {
     y: int;
 }
 
+Vector2 :: struct {
+    x: float;
+    y: float;
+}
+
 Color :: struct {
     r: float;
     g: float;
     b: float;
     a: float;
+}
+
+pow :: (x: int, y: int ) -> {
+    <- x * y;
 }
 
 set_color :: (color: *Color){
@@ -16,11 +25,6 @@ set_color :: (color: *Color){
 
 get_mouse_position :: () -> Vector2i {
     <- { get_mouse_x(), get_mouse_y() };
-}
-
-get_mouse :: (pos: *Vector2i){
-    pos.x = get_mouse_x();
-    pos.y = get_mouse_y();
 }
 
 main :: () {
@@ -37,10 +41,19 @@ main :: () {
 
     box_size := 100;
 
-    mouse_position: Vector2i = {10, 10};
-    z := 2 *  mouse_position.x;
-    print(z);
+    while true {
+        frame_begin();
+        set_color(&black);
+        fill_rect(0, 0, window_width, window_height);
 
+        mouse_position := get_mouse_position();
 
+        pos: Vector2 = { 0.2, 0.3 };
 
+        pow(1.2 , 3.4);
+
+        set_color(&red);
+        fill_rect(mouse_position.x, mouse_position.y, box_size, box_size);
+        draw();
+    }
 }
