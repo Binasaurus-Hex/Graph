@@ -54,6 +54,9 @@ Vector2 :: struct {
 
 position: Vector2;
 position.x = 50;
+
+/* struct literals */
+velocity: Vector2 = { 0.1 , 0.2 };
 ```
 
 control flow

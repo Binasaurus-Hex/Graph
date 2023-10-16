@@ -707,6 +707,7 @@ public class Main {
             ProcedureCall procedure_call = (ProcedureCall) expression;
             ProcedureDeclaration procedure_declaration = scope.find_procedure(procedure_call.name);
             procedure_call.external = procedure_declaration.external;
+            procedure_call.procedure = procedure_declaration;
 
             for(int i = 0; i < procedure_call.inputs.size(); i++){
                 VariableDeclaration input = (VariableDeclaration) procedure_declaration.inputs.get(i);

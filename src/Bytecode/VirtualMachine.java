@@ -75,7 +75,12 @@ public class VirtualMachine {
 
                 case ASSIGN_POP -> {
                     int memory_address = (int)program[program_counter++];
-                    stack[base_pointer + memory_address] = stack[--stack_pointer];
+                    int size = (int)program[program_counter++];
+
+                    for(int i = 0; i < size; i++){
+                        stack[base_pointer + memory_address + i] = stack[stack_pointer - size + i];
+                    }
+                    stack_pointer = stack_pointer - size;
                 }
 
                 case ASSIGN_ADDRESS -> {

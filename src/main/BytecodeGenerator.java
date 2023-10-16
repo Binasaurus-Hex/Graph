@@ -333,9 +333,11 @@ public class BytecodeGenerator {
                 }
 
                 else if(assign.value instanceof ProcedureCall){
-                    generate_bytecode(Collections.singletonList(assign.value), bytecode, context);
+                    ProcedureCall proc_call = (ProcedureCall) assign.value;
+                    generate_bytecode(Collections.singletonList(proc_call), bytecode, context);
                     bytecode.add(ASSIGN_POP.code());
                     bytecode.add(memory_address);
+                    bytecode.add(get_size(proc_call.procedure.outputs.get(0)));
                 }
             }
 
