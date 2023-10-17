@@ -659,7 +659,7 @@ public class Main {
         declaration.name = get_unique_name();
         declaration.type = type;
 
-        if(type == null && expression instanceof Literal){
+        if(expression instanceof Literal){
             declaration.type = get_type((Literal)expression);
         }
 
@@ -1005,8 +1005,11 @@ public class Main {
                     if(declaration.type == null){
                         declaration.type = call.type;
                     }
-                    else{
-                        // check type equality
+                    if(!types_equal(declaration.type, call.type)){
+                        System.out.println(String.format(
+                                "Error : can't assign %s of type %s to type %s",
+                                declaration.name, type_to_string(declaration.type), type_to_string(call.type)));
+                        System.exit(1);
                     }
                     output.add(assign);
                 }
