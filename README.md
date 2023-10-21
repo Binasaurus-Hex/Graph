@@ -12,16 +12,16 @@ Key goals :
 
 Features : 
 - bool, float, and int types
-- arrays of aformentioned types
+- arrays of aforementioned types
 - structs
 - type inference
 - pointers
 - ability to call out to java functions (limited to certain types)
-- now compiles to a intermediate bytecode, and contains a virtual machine for running the bytecode.
+- now compiles to intermediate bytecode, and contains a virtual machine for running the bytecode.
 
 # Examples
 
-variable decleration
+variable declaration
 ```go
 x := 2;
 y :int = 3;
@@ -105,9 +105,9 @@ main :: () {
     open_window(window_width, window_height);
 
     // colours
-    red:   Color = { 1., 0. + 0.5, 0., 1. };
-    blue:  Color = { 0., 0., 1., 1. };
-    black: Color = { 0., 0., 0., 1. };
+    orange: Color = { 1., 0.3 + 0.2, 0., 1. };
+    blue:   Color = { 0., 0., 1., 1. };
+    black:  Color = { 0., 0., 0., 1. };
 
     box_size := 100;
 
@@ -118,13 +118,13 @@ main :: () {
 
         mouse_position := get_mouse_position();
 
-        set_color(&red);
+        set_color(&orange);
         fill_rect(mouse_position.x, mouse_position.y, box_size, box_size);
         draw();
     }
 }
 ```
-## whats next?
+## What's next?
 I'd like to get a few more things in before transitioning the code back to C++, and writing a backend to convert the bytecode to machine code.
 Hopefully this will remove the dependency on the NASM assembler I used on the previous iteration.
   

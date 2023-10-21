@@ -31,9 +31,9 @@ main :: () {
     open_window(window_width, window_height);
 
     // colours
-    red:   Color = { 1., 0. + 0.5, 0., 1. };
-    blue:  Color = { 0., 0., 1., 1. };
-    black: Color = { 0., 0., 0., 1. };
+    orange: Color = { 1., 0.3 + 0.2, 0., 1. };
+    blue:   Color = { 0., 0., 1., 1. };
+    black:  Color = { 0., 0., 0., 1. };
 
     box_size := 100;
 
@@ -44,7 +44,7 @@ main :: () {
 
         mouse_position := get_mouse_position();
 
-        set_color(&red);
+        set_color(&orange);
         fill_rect(mouse_position.x, mouse_position.y, box_size, box_size);
         draw();
     }
