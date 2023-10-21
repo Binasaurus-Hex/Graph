@@ -72,75 +72,54 @@ while counter < 100 {
 
 # Moving a square around the screen
 ```go
+Vector2i :: struct {
+    x: int;
+    y: int;
+}
+
 Vector2 :: struct {
     x: float;
     y: float;
 }
 
-Box :: struct {
-    position: Vector2;
-    velocity: Vector2;
-    size: int;
+Color :: struct {
+    r: float;
+    g: float;
+    b: float;
+    a: float;
 }
 
-length :: (v: *Vector2) -> float {
-    <- sqrt(v.x * v.x + v.y * v.y);
+set_color :: (color: *Color){
+    extern_set_colour(color.r, color.g, color.b, color.a);
 }
 
-get_movement :: (movement: *Vector2){
-    W := 87; A := 65; S := 83; D := 68;
-
-    movement.x = float(key_pressed(D) - key_pressed(A));
-    movement.y = float(key_pressed(S) - key_pressed(W));
-
-    len := length(movement);
-    if movement.x > 0. {
-        movement.x = movement.x / len;
-    }
-    if movement.y > 0. {
-        movement.y = movement.y / len;
-    }
+get_mouse_position :: () -> Vector2i {
+    <- { get_mouse_x(), get_mouse_y() };
 }
 
-main :: (){
+main :: () {
 
-    window_width := 1000;
+    window_width := 1500;
     window_height := 1000;
 
     open_window(window_width, window_height);
 
-    previous_time := time_seconds();
-    delta := 0.;
+    // colours
+    red:   Color = { 1., 0. + 0.5, 0., 1. };
+    blue:  Color = { 0., 0., 1., 1. };
+    black: Color = { 0., 0., 0., 1. };
 
-    box: Box;
-    box.position.x = 10.;
-    box.position.y = 10.;
-
-    box.velocity.x = 200.;
-    box.velocity.y = 200.;
-
-    box.size = 40;
-
-    move: Vector2;
-
-    /* block
-       comments */
+    box_size := 100;
 
     while true {
         frame_begin();
-        clear_screen();
+        set_color(&black);
+        fill_rect(0, 0, window_width, window_height);
 
-        get_movement(&move);
+        mouse_position := get_mouse_position();
 
-        box.position.x = box.position.x + box.velocity.x * move.x * delta;
-        box.position.y = box.position.y + box.velocity.y * move.y * delta;
-
-        fill_rect(int(box.position.x), int(box.position.y), box.size, box.size);
-
-        current_time := time_seconds();
-        delta = current_time - previous_time;
-        previous_time = current_time;
-
+        set_color(&red);
+        fill_rect(mouse_position.x, mouse_position.y, box_size, box_size);
         draw();
     }
 }
