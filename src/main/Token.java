@@ -20,6 +20,40 @@ public class Token {
     }};
 
     public enum Type {
+        SPACE(" "),
+        COMMENT_START("/*"),
+        COMMENT_END("*/"),
+        COMMENT_LINE("//"),
+        STAR("*"),
+
+        BACK_ARROW("<-"),
+        FORWARD_ARROW("->"),
+        MINUS("-"),
+        PLUS("+"),
+        FORWARD_SLASH("/"),
+
+        // punctuation
+        OPEN_BRACKET("["),
+        CLOSE_BRACKET("]"),
+        OPEN_BRACE("{"),
+        CLOSE_BRACE("}"),
+        OPEN_PARENTHESIS("("),
+        CLOSE_PARENTHESIS(")"),
+        COLON(":"),
+        SEMI_COLON(";"),
+        LESS_THAN("<"),
+        GREATER_THAN(">"),
+        DOT("."),
+        DOUBLE_EQUALS("=="),
+        EQUALS("="),
+        COMMA(","),
+
+        ADDRESS("&"),
+
+        // whitespace,
+        NEWLINE("\n"),
+        CARRIAGE_RETURN("\r"),
+        TAB("\t"),
         STRING,
         IDENTIFIER,
         INTEGER,
@@ -36,43 +70,7 @@ public class Token {
         IN,
         OR,
         IS,
-        IF,
-
-        // punctuation
-        OPEN_BRACKET("["),
-        CLOSE_BRACKET("]"),
-        OPEN_BRACE("{"),
-        CLOSE_BRACE("}"),
-        OPEN_PARENTHESIS("("),
-        CLOSE_PARENTHESIS(")"),
-        COLON(":"),
-        SEMI_COLON(";"),
-        BACK_ARROW("<-"),
-        FORWARD_ARROW("->"),
-        LESS_THAN("<"),
-        GREATER_THAN(">"),
-        DOT("."),
-        DOUBLE_EQUALS("=="),
-        EQUALS("="),
-        COMMA(","),
-
-        ADDRESS("&"),
-
-        MINUS("-"),
-        PLUS("+"),
-
-        COMMENT_START("/*"),
-        COMMENT_END("*/"),
-
-        COMMENT_LINE("//"),
-        FORWARD_SLASH("/"),
-        STAR("*"),
-
-        // whitespace,
-        SPACE(" "),
-        NEWLINE("\n"),
-        CARRIAGE_RETURN("\r"),
-        TAB("\t");
+        IF;
 
         String text;
         Type(String value){

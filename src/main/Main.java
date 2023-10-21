@@ -2,19 +2,13 @@ package main;
 
 import SyntaxNodes.*;
 import Bytecode.VirtualMachine;
-
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Struct;
 import java.util.*;
 
 public class Main {
@@ -32,9 +26,10 @@ public class Main {
         if(token_text == null){
             return false;
         }
-        if(program_text_index + token_text.length() > program_text.length())return false;
+        int token_size = token_text.length();
+        if(program_text_index + token_size > program_text.length())return false;
 
-        for(int i = 0; i < token_text.length(); i++){
+        for(int i = 0; i < token_size; i++){
             char a = token_text.charAt(i);
             char b = program_text.charAt(program_text_index + i);
             if(a != b) return false;
@@ -93,12 +88,11 @@ public class Main {
                     inside_comment = false;
                     text_index += Token.Type.COMMENT_END.text.length();
                     last_token_index = text_index;
-                    continue;
                 }
                 else{
                     text_index++;
-                    continue;
                 }
+                continue;
             }
             if(inside_line_comment){
                  if(matches(Token.Type.NEWLINE.text, program_text, text_index)){
@@ -671,7 +665,7 @@ public class Main {
     static int generated_name_counter = 0;
 
     static String get_unique_name(){
-        return String.format("#%d", generated_name_counter++);
+        return String.valueOf(generated_name_counter++);
     }
 
     static VariableCall generate_variable_to(Node expression, List<Node> generated_statements, Node type){
@@ -746,7 +740,7 @@ public class Main {
             temp_struct.type = type;
 
             generated_statements.add(temp_struct);
-            scope.variables.add(temp_struct);
+            scope.variable_map.put(temp_struct.name, temp_struct);
 
             VariableCall temp_struct_call = new VariableCall();
             temp_struct_call.name = temp_struct.name;
@@ -988,17 +982,16 @@ public class Main {
 
                 Scope sub_scope = new Scope();
                 sub_scope.enclosing_procedure = procedure;
-                sub_scope.variables = new ArrayList<>();
                 sub_scope.procedures = new ArrayList<>();
                 sub_scope.structs = new ArrayList<>();
-                sub_scope.variables.addAll(scope.variables);
+                sub_scope.variable_map.putAll(scope.variable_map);
                 sub_scope.procedures.addAll(scope.procedures);
                 sub_scope.structs.addAll(scope.structs);
 
                 for(int i = 0; i < procedure.inputs.size(); i++){
                     VariableDeclaration declaration = (VariableDeclaration) procedure.inputs.get(i);
                     declaration.type = enrich_type(declaration.type, scope);
-                    sub_scope.variables.add(declaration);
+                    sub_scope.variable_map.put(declaration.name, declaration);
                 }
                 for(int i = 0; i < procedure.outputs.size(); i++){
                     procedure.outputs.set(i, enrich_type(procedure.outputs.get(i), scope));
@@ -1023,7 +1016,7 @@ public class Main {
                 VariableDeclaration declaration = (VariableDeclaration) node;
                 declaration.type = enrich_type(declaration.type, scope);
 
-                scope.variables.add(declaration);
+                scope.variable_map.put(declaration.name, declaration);
                 output.add(declaration);
                 if(declaration.value != null) {
                     VariableAssign assign = new VariableAssign();
@@ -1059,10 +1052,11 @@ public class Main {
                 If if_statement = (If) node;
                 Scope sub_scope = new Scope();
                 sub_scope.enclosing_procedure = scope.enclosing_procedure;
-                sub_scope.variables = new ArrayList<>();
                 sub_scope.procedures = new ArrayList<>();
-                sub_scope.variables.addAll(scope.variables);
+                sub_scope.variable_map.putAll(scope.variable_map);
                 sub_scope.procedures.addAll(scope.procedures);
+                sub_scope.structs = new ArrayList<>();
+                sub_scope.structs.addAll(scope.structs);
 
                 if_statement.condition = flatten_expression(if_statement.condition, output, false, null, sub_scope);
                 if_statement.block = flatten(if_statement.block, sub_scope);
@@ -1073,10 +1067,9 @@ public class Main {
                 While while_statement = (While) node;
                 Scope sub_scope = new Scope();
                 sub_scope.enclosing_procedure = scope.enclosing_procedure;
-                sub_scope.variables = new ArrayList<>();
                 sub_scope.procedures = new ArrayList<>();
                 sub_scope.structs = new ArrayList<>();
-                sub_scope.variables.addAll(scope.variables);
+                sub_scope.variable_map.putAll(scope.variable_map);
                 sub_scope.procedures.addAll(scope.procedures);
                 sub_scope.structs.addAll(scope.structs);
 
@@ -1107,8 +1100,13 @@ public class Main {
 
     public static void main(String[] args) {
 
+        long start = System.nanoTime();
+
         String program_text = read_file_as_text(args[0]);
         List<Token> tokens = tokenize(program_text);
+        System.out.printf("tokenizing :: %f seconds\n", (System.nanoTime() - start) / 1e9);
+
+        long stopMark = System.nanoTime();
 
         Tokenizer tokenizer = new Tokenizer();
         tokenizer.tokens = tokens;
@@ -1156,13 +1154,22 @@ public class Main {
 
         Scope global_scope = new Scope();
         global_scope.procedures = procedures;
-        global_scope.variables = globals;
+        //global_scope.variables = globals;
         global_scope.structs = structs;
 
+        System.out.printf("parsing :: %f seconds\n", (System.nanoTime() - stopMark) / 1e9);
+        stopMark = System.nanoTime();
+
         program = flatten(program, global_scope);
+        System.out.printf("flattening :: %f seconds\n", (System.nanoTime() - stopMark) / 1e9);
+
+        stopMark = System.nanoTime();
 
         BytecodeGenerator generator = new BytecodeGenerator();
         long[] bytecode = generator.generate_bytecode(program);
+
+        System.out.printf("bytecode generation :: %f seconds\n", (System.nanoTime() - stopMark) / 1e9);
+        stopMark = System.nanoTime();
 
         ByteBuffer buffer = ByteBuffer.allocate(bytecode.length * Long.BYTES);
         buffer.asLongBuffer().put(bytecode);
@@ -1171,6 +1178,9 @@ public class Main {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        System.out.printf("file write :: %f seconds\n", (System.nanoTime() - stopMark) / 1e9);
+        System.out.printf("compile took %f seconds\n", (System.nanoTime() - start) / 1e9);
 
         if (args.length == 1)return;
         if(args[1].equals("-run") || args[1].equals("-r")){

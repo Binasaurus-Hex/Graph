@@ -15,7 +15,7 @@ public class VirtualMachine {
     }
 
     public void run(long[] program){
-        long[] stack = new long[10000];
+        long[] stack = new long[1000000];
         int stack_pointer = 0;
         int base_pointer = 0;
         int program_counter = 0;

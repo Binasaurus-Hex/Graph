@@ -4,12 +4,16 @@ import SyntaxNodes.ProcedureDeclaration;
 import SyntaxNodes.StructDeclaration;
 import SyntaxNodes.VariableDeclaration;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Scope {
     public ProcedureDeclaration enclosing_procedure = null; // for return statements
     public List<ProcedureDeclaration> procedures;
-    public List<VariableDeclaration> variables;
+    public List<VariableDeclaration> variables = new ArrayList<>();
+    public Map<String, VariableDeclaration> variable_map = new HashMap<>();
     public List<StructDeclaration> structs;
 
     public ProcedureDeclaration find_procedure(String name){
@@ -22,11 +26,6 @@ public class Scope {
     }
 
     public VariableDeclaration find_variable(String name){
-        for(VariableDeclaration variable : variables){
-            if(variable.name.equals(name)){
-                return variable;
-            }
-        }
-        return null;
+        return variable_map.get(name);
     }
 }

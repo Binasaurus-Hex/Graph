@@ -3,11 +3,6 @@ Vector2i :: struct {
     y: int;
 }
 
-Vector2 :: struct {
-    x: float;
-    y: float;
-}
-
 Color :: struct {
     r: float;
     g: float;
@@ -21,6 +16,9 @@ set_color :: (color: *Color){
 
 get_mouse_position :: () -> Vector2i {
     <- { get_mouse_x(), get_mouse_y() };
+}
+
+compile_shit :: () {
 }
 
 main :: () {
