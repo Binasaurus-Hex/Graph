@@ -15,6 +15,7 @@ public class Token {
         put(Type.FOR, "for");
         put(Type.AND, "and");
         put(Type.OR, "or");
+        put(Type.IN, "in");
         put(Type.IS, "is");
     }};
 
@@ -31,6 +32,8 @@ public class Token {
         FALSE,
         FOR,
         AND,
+
+        IN,
         OR,
         IS,
         IF,
@@ -98,14 +101,14 @@ public class Token {
 
     boolean is_keyword(){
         return switch (type){
-            case WHILE,FOR,AND,OR,IF,ELSE,STRUCT -> true;
+            case WHILE,FOR,AND,OR,IF,ELSE,STRUCT, IN -> true;
             default -> false;
         };
     }
 
     boolean is_binary_operator(){
         return switch (type){
-            case MINUS,PLUS,FORWARD_SLASH,STAR,DOUBLE_EQUALS,LESS_THAN,GREATER_THAN, DOT, EQUALS, OPEN_BRACKET -> true;
+            case MINUS,PLUS,FORWARD_SLASH,STAR,DOUBLE_EQUALS,LESS_THAN,GREATER_THAN, DOT, EQUALS, OPEN_BRACKET, IN -> true;
             default -> false;
         };
     }

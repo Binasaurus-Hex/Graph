@@ -68,6 +68,7 @@ public class Main {
             case DOT:           return BinaryOperator.Operation.DOT;
             case EQUALS:        return BinaryOperator.Operation.ASSIGN;
             case OPEN_BRACKET:  return BinaryOperator.Operation.INDEX;
+            case IN:            return BinaryOperator.Operation.IN;
         }
         return null;
     }
@@ -150,7 +151,9 @@ public class Main {
                         if (is_number) identifier.type = Token.Type.INTEGER;
 
                         for(Map.Entry<Token.Type, String> keyword : Token.keywords.entrySet()){
-                            if(matches(keyword.getValue(), program_text, last_token_index)){
+                            String keyword_text = keyword.getValue();
+                            if(identifier.length != keyword_text.length())continue;
+                            if(matches(keyword_text, program_text, last_token_index)){
                                 identifier.type = keyword.getKey();
                                 break;
                             }
@@ -464,7 +467,7 @@ public class Main {
                     procedure.outputs = new ArrayList<>();
                     if(tokenizer.peek_token().type == Token.Type.FORWARD_ARROW){
                         tokenizer.eat_token();
-                        while (tokenizer.peek_token().type != Token.Type.OPEN_BRACE){
+                        do {
                             // PARSE TYPE
                             Node output_type = parse_type(tokenizer);
                             if(output_type == null){
@@ -473,6 +476,7 @@ public class Main {
                             procedure.outputs.add(output_type);
                             if(tokenizer.peek_token().type != Token.Type.COMMA)break;
                         }
+                        while (tokenizer.peek_token().type != Token.Type.OPEN_BRACE);
                     }
 
                     procedure.block = parse_block(tokenizer);
@@ -517,6 +521,21 @@ public class Main {
                 if_statement.block = parse_block(tokenizer);
                 return if_statement;
             }
+            else if(keyword.type == Token.Type.FOR){
+                For for_statement = new For();
+                Node iteration_or_sequence = parse_expression(tokenizer);
+                for_statement.sequence = iteration_or_sequence;
+                if(iteration_or_sequence instanceof BinaryOperator){
+                    BinaryOperator operator = (BinaryOperator) iteration_or_sequence;
+                    if(operator.operation == BinaryOperator.Operation.IN){
+                        for_statement.iteration = operator.left;
+                        for_statement.sequence = operator.right;
+                    }
+                }
+
+                for_statement.block = parse_block(tokenizer);
+                return for_statement;
+            }
             else if(keyword.type == Token.Type.BACK_ARROW){
                 Return return_statement = new Return();
                 return_statement.value = parse_expression(tokenizer);
@@ -534,6 +553,7 @@ public class Main {
         if(statement instanceof ProcedureDeclaration) return true;
         if(statement instanceof While) return true;
         if(statement instanceof If) return true;
+        if(statement instanceof For) return true;
         return false;
     }
 
@@ -775,6 +795,18 @@ public class Main {
 
         if(expression instanceof ProcedureCall){
             ProcedureCall procedure_call = (ProcedureCall) expression;
+            if(procedure_call.name.equals("len")){
+                VariableCall array_call = (VariableCall)flatten_expression(procedure_call.inputs.get(0), generated_statements, false, null, scope);
+                if(!(array_call.type instanceof ArrayType)){
+                    System.out.println("len only accepts arguments of arrays");
+                    System.exit(0);
+                }
+                ArrayType array = (ArrayType) array_call.type;
+                Literal<Integer> size = new Literal<>();
+                size.value = array.size;
+                return generate_variable_to(size, generated_statements, null);
+            }
+
             ProcedureDeclaration procedure_declaration = scope.find_procedure(procedure_call.name);
             procedure_call.external = procedure_declaration.external;
             procedure_call.procedure = procedure_declaration;

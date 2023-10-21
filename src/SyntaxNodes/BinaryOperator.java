@@ -11,7 +11,9 @@ public class BinaryOperator implements Node {
         MULTIPLY,
         DIVIDE,
         INDEX,
-        DOT;
+        DOT,
+
+        IN;
 
         public boolean is_comparison(){
             switch (this){
