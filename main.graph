@@ -35,6 +35,18 @@ main :: () {
 
     box_size := 100;
 
+    items: [5]Vector2i;
+
+    first: Vector2i = { 1, 2 };
+    second : Vector2i = { 3, 4 };
+    items[0] = first;
+    items[1] = second;
+
+    for item in items {
+        print(item.y);
+    }
+
+
     while true {
         frame_begin();
         set_color(&black);

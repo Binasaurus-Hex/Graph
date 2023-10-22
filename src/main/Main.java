@@ -522,7 +522,7 @@ public class Main {
                 if(iteration_or_sequence instanceof BinaryOperator){
                     BinaryOperator operator = (BinaryOperator) iteration_or_sequence;
                     if(operator.operation == BinaryOperator.Operation.IN){
-                        for_statement.iteration = operator.left;
+                        for_statement.iteration = (VariableCall) operator.left;
                         for_statement.sequence = operator.right;
                     }
                 }
@@ -980,13 +980,8 @@ public class Main {
             if(node instanceof ProcedureDeclaration){
                 ProcedureDeclaration procedure = (ProcedureDeclaration)node;
 
-                Scope sub_scope = new Scope();
+                Scope sub_scope = scope.duplicate();
                 sub_scope.enclosing_procedure = procedure;
-                sub_scope.procedures = new ArrayList<>();
-                sub_scope.structs = new ArrayList<>();
-                sub_scope.variable_map.putAll(scope.variable_map);
-                sub_scope.procedures.addAll(scope.procedures);
-                sub_scope.structs.addAll(scope.structs);
 
                 for(int i = 0; i < procedure.inputs.size(); i++){
                     VariableDeclaration declaration = (VariableDeclaration) procedure.inputs.get(i);
@@ -1050,13 +1045,7 @@ public class Main {
             }
             if(node instanceof If){
                 If if_statement = (If) node;
-                Scope sub_scope = new Scope();
-                sub_scope.enclosing_procedure = scope.enclosing_procedure;
-                sub_scope.procedures = new ArrayList<>();
-                sub_scope.variable_map.putAll(scope.variable_map);
-                sub_scope.procedures.addAll(scope.procedures);
-                sub_scope.structs = new ArrayList<>();
-                sub_scope.structs.addAll(scope.structs);
+                Scope sub_scope = scope.duplicate();
 
                 if_statement.condition = flatten_expression(if_statement.condition, output, false, null, sub_scope);
                 if_statement.block = flatten(if_statement.block, sub_scope);
@@ -1065,16 +1054,83 @@ public class Main {
             }
             if(node instanceof While){
                 While while_statement = (While) node;
-                Scope sub_scope = new Scope();
-                sub_scope.enclosing_procedure = scope.enclosing_procedure;
-                sub_scope.procedures = new ArrayList<>();
-                sub_scope.structs = new ArrayList<>();
-                sub_scope.variable_map.putAll(scope.variable_map);
-                sub_scope.procedures.addAll(scope.procedures);
-                sub_scope.structs.addAll(scope.structs);
+                Scope sub_scope = scope.duplicate();
 
                 while_statement.condition = flatten_expression(while_statement.condition, while_statement.condition_block, false, null, sub_scope);
                 while_statement.block = flatten(while_statement.block, sub_scope);
+                output.add(while_statement);
+                continue;
+            }
+            if(node instanceof For){
+                For for_statement = (For) node;
+                Scope sub_scope = scope.duplicate();
+                VariableCall sequence = (VariableCall) flatten_expression(for_statement.sequence, output, false, null, sub_scope);
+                if(!(sequence.type instanceof ArrayType)){
+                    System.out.println("for loop sequence must be an array");
+                    System.exit(1);
+                }
+                ArrayType array_type = (ArrayType)sequence.type;
+
+                VariableDeclaration iteration = new VariableDeclaration();
+                iteration.name = for_statement.iteration.name;
+                iteration.type = array_type.type;
+                output.add(iteration);
+                sub_scope.variable_map.put(iteration.name, iteration);
+                VariableCall iteration_call = new VariableCall();
+                iteration_call.name = iteration.name;
+                iteration_call.type = iteration.type;
+
+                VariableDeclaration index = new VariableDeclaration();
+                index.name = get_unique_name();
+                index.type = LiteralType.INT();
+                output.add(index);
+                sub_scope.variable_map.put(index.name, index);
+
+                VariableCall index_call = new VariableCall();
+                index_call.type = index.type;
+                index_call.name = index.name;
+
+                Literal<Integer> sequence_size = new Literal<>(array_type.size);
+                VariableCall sequence_size_call = generate_variable_to(sequence_size, output, null);
+
+                Literal<Integer> one = new Literal<>(1);
+                VariableCall one_call = generate_variable_to(one, output, null);
+
+                While while_statement = new While();
+                BinaryOperator condition = new BinaryOperator();
+                condition.operation = BinaryOperator.Operation.LESS_THAN;
+                condition.left = index_call;
+                condition.right = sequence_size_call;
+
+                VariableCall loop_check = generate_variable_to(condition, while_statement.condition_block, LiteralType.BOOL());
+                while_statement.condition = loop_check;
+
+                VariableAssign index_increment = new VariableAssign();
+                index_increment.variable_name = index.name;
+                BinaryOperator increment = new BinaryOperator();
+                increment.operation = BinaryOperator.Operation.ADD;
+                increment.left = index_call;
+                increment.right = one_call;
+                index_increment.value = increment;
+
+                BinaryOperator array_index = new BinaryOperator();
+                array_index.operation = BinaryOperator.Operation.INDEX;
+                array_index.left = sequence;
+                array_index.right = index_call;
+
+                List<Node> loop_block = new ArrayList<>();
+                BinaryOperator iteration_assign = new BinaryOperator();
+                iteration_assign.operation = BinaryOperator.Operation.ASSIGN;
+                iteration_assign.left = iteration_call;
+                iteration_assign.right = array_index;
+
+                VariableAssign assign = (VariableAssign) flatten_expression(iteration_assign, loop_block, false, null, sub_scope);
+                loop_block.add(assign);
+
+                loop_block.addAll(flatten(for_statement.block, sub_scope));
+                loop_block.add(index_increment);
+
+                while_statement.block = loop_block;
                 output.add(while_statement);
                 continue;
             }

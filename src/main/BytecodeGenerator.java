@@ -199,6 +199,8 @@ public class BytecodeGenerator {
                     }
                     else if(!assign.location && variable_call.type instanceof Location) {
                         code = ASSIGN_VAR_FROM_LOCATION.code();
+                        Location location = (Location) variable_call.type;
+                        size = get_size(location.type);
                     }
 
                     bytecode.add(code);
@@ -420,6 +422,18 @@ public class BytecodeGenerator {
   while end     ...
                  */
 
+            }
+            if(node instanceof For){
+                For for_statement = (For) node;
+                /*
+                sequence: Arr
+                i := 0
+                it :value
+                while i < len(sequence) {
+                    // do stuff
+                    i = i + 1
+                }
+                 */
             }
 
             if(node instanceof Return){
