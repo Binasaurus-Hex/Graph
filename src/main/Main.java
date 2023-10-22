@@ -839,9 +839,20 @@ public class Main {
             }
 
             operator.left = flatten_expression(operator.left, generated_statements, false, null, scope);
-            if(flatten_right)  operator.right = flatten_expression(operator.right, generated_statements, false, null, scope);
-
             VariableCall left = (VariableCall) operator.left;
+
+            Node right_type = null;
+            if(operator.operation == BinaryOperator.Operation.ASSIGN){
+                if(left.type instanceof Location){
+                    right_type = ((Location) left.type).type;
+                }
+                else{
+                    right_type = left.type;
+                }
+            }
+
+            if(flatten_right)  operator.right = flatten_expression(operator.right, generated_statements, false, right_type, scope);
+
             VariableCall right = (VariableCall) operator.right;
 
             type = left.type;
