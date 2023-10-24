@@ -29,6 +29,7 @@ public enum InstructionSet {
     JUMP_ABSOLUTE,
     CALL_PROCEDURE,
     RETURN,
+    PROGRAM_EXIT,
     CALL_EXTERNAL,
     ALLOCATE,
     DEALLOCATE,

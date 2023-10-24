@@ -24,9 +24,11 @@ public class BytecodeGenerator {
     class Context {
         Scope scope = new Scope();
         long stack_offset;
+        int main_jump_index; // index in the code where to change the main index
     }
 
     long[] generate_bytecode(List<Node> program){
+
         Context global_context = new Context();
         Scope global_scope = new Scope();
         global_context.scope = global_scope;
@@ -45,8 +47,10 @@ public class BytecodeGenerator {
         }
 
         List<Long> bytecode = new ArrayList<>();
-        bytecode.add(JUMP_ABSOLUTE.code());
-        bytecode.add(0L); // entry point
+
+        Node main_call = program.remove(program.size() - 1);
+        generate_bytecode(Collections.singletonList(main_call), bytecode, global_context);
+        bytecode.add(PROGRAM_EXIT.code());
 
         // procedures
         for(Node node : program){
@@ -54,8 +58,7 @@ public class BytecodeGenerator {
                 ProcedureDeclaration procedure = (ProcedureDeclaration) node;
                 long program_line = bytecode.size();
                 if(procedure.name.equals("main")){
-                    // set entry point
-                    bytecode.set(1, program_line);
+                    bytecode.set(global_context.main_jump_index, program_line);
                 }
                 global_scope.labels.put(procedure.name, program_line);
                 global_scope.procedures.put(procedure.name, procedure);
@@ -69,7 +72,8 @@ public class BytecodeGenerator {
                 }
                 for(int i = procedure.outputs.size() -1; i >= 0; i--){
                     Node type = procedure.outputs.get(i);
-                    long size = get_size(type);
+                    long size = 0;
+                    if(type != null)size = get_size(type);
                     input_offset -= size;
                     context.scope.locals.put(String.format("<-%d", procedure.outputs.size() - i - 1), input_offset);
                 }
@@ -85,10 +89,8 @@ public class BytecodeGenerator {
                 long stack_size = context.stack_offset;
                 bytecode.set(allocation_index, stack_size);
 
-                if(!procedure.name.equals("main")){
-                    bytecode.add(RETURN.code());
-                    bytecode.add((long)procedure.inputs.size());
-                }
+                bytecode.add(RETURN.code());
+                bytecode.add((long)procedure.inputs.size());
             }
         }
 
@@ -347,7 +349,7 @@ public class BytecodeGenerator {
                 ProcedureCall call = (ProcedureCall)node;
 
                 if(!call.external){
-                    ProcedureDeclaration procedure = context.scope.procedures.get(call.name);
+                    ProcedureDeclaration procedure = call.procedure;
                     for(Node output : procedure.outputs){
                         long size = get_size(output);
                         bytecode.add(ALLOCATE.code());
@@ -372,7 +374,14 @@ public class BytecodeGenerator {
                 }
                 else{
                     bytecode.add(CALL_PROCEDURE.code());
-                    long procedure_location = context.scope.labels.get(call.name);
+                    long procedure_location;
+                    if(call.name.equals("main")){
+                        context.main_jump_index = bytecode.size();
+                        procedure_location = -1; // gets specified later once we know the location of main
+                    }
+                    else{
+                        procedure_location = context.scope.labels.get(call.name);
+                    }
                     bytecode.add(procedure_location);
                 }
             }
@@ -439,11 +448,13 @@ public class BytecodeGenerator {
             if(node instanceof Return){
                 Return return_statement = (Return) node;
                 VariableCall value = (VariableCall) return_statement.value;
-                bytecode.add(ASSIGN_MEMORY.code());
-                long return_location = context.scope.locals.get("<-0");
-                bytecode.add(return_location);
-                bytecode.add(context.scope.locals.get(value.name));
-                bytecode.add(get_size(value.type));
+                if(value != null) {
+                    bytecode.add(ASSIGN_MEMORY.code());
+                    long return_location = context.scope.locals.get("<-0");
+                    bytecode.add(return_location);
+                    bytecode.add(context.scope.locals.get(value.name));
+                    bytecode.add(get_size(value.type));
+                }
 
                 bytecode.add(RETURN.code());
                 bytecode.add((long)return_statement.procedure.inputs.size());

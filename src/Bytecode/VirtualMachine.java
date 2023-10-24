@@ -14,7 +14,8 @@ public class VirtualMachine {
     public VirtualMachine(){
     }
 
-    public void run(long[] program){
+    // returns the stack
+    public long[] run(long[] program){
         long[] stack = new long[1000000];
         int stack_pointer = 0;
         int base_pointer = 0;
@@ -181,6 +182,10 @@ public class VirtualMachine {
                     stack_pointer -= inputs_size;
                 }
 
+                case PROGRAM_EXIT -> {
+                    return stack;
+                }
+
                 case PROCEDURE_HEADER -> {
                     stack[stack_pointer++] = base_pointer;
                     base_pointer = stack_pointer;
@@ -272,5 +277,6 @@ public class VirtualMachine {
                 }
             }
         }
+        return stack;
     }
 }

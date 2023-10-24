@@ -1054,7 +1054,10 @@ public class Main {
             if(node instanceof Return){
                 Return return_statement = (Return) node;
                 return_statement.procedure = scope.enclosing_procedure;
-                return_statement.type = scope.enclosing_procedure.outputs.get(0);
+                List<Node> outputs = scope.enclosing_procedure.outputs;
+                if(!outputs.isEmpty()){
+                    return_statement.type = outputs.get(0);
+                }
                 return_statement.value = flatten_expression(return_statement.value, output, false, return_statement.type, scope);
                 output.add(return_statement);
                 continue;
@@ -1233,6 +1236,11 @@ public class Main {
         System.out.printf("parsing :: %f seconds\n", (System.nanoTime() - stopMark) / 1e9);
         stopMark = System.nanoTime();
 
+        ProcedureCall main_call = new ProcedureCall();
+        main_call.name = "main";
+        main_call.inputs = new ArrayList<>();
+        program.add(main_call);
+
         program = flatten(program, global_scope);
         System.out.printf("flattening :: %f seconds\n", (System.nanoTime() - stopMark) / 1e9);
 
@@ -1258,7 +1266,8 @@ public class Main {
         if (args.length == 1)return;
         if(args[1].equals("-run") || args[1].equals("-r")){
             VirtualMachine vm = new VirtualMachine();
-            vm.run(bytecode);
+            long[] output = vm.run(bytecode);
+            System.out.println("return code : " + output[0]); // return code
         }
     }
 }
