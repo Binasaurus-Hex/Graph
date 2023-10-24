@@ -513,6 +513,11 @@ public class Main {
                 If if_statement = new If();
                 if_statement.condition = parse_expression(tokenizer);
                 if_statement.block = parse_block(tokenizer);
+                if(if_statement.block == null){
+                    // try parse inline if
+                    if_statement.block = new ArrayList<>();
+                    if_statement.block.add(parse_statement(tokenizer));
+                }
                 return if_statement;
             }
             else if(keyword.type == Token.Type.FOR){
@@ -1084,7 +1089,9 @@ public class Main {
 
                 VariableDeclaration iteration = new VariableDeclaration();
                 iteration.name = for_statement.iteration.name;
-                iteration.type = array_type.type;
+                Location iteration_type = new Location();
+                iteration_type.type = array_type.type;
+                iteration.type = iteration_type;
                 output.add(iteration);
                 sub_scope.variable_map.put(iteration.name, iteration);
                 VariableCall iteration_call = new VariableCall();
@@ -1113,8 +1120,7 @@ public class Main {
                 condition.left = index_call;
                 condition.right = sequence_size_call;
 
-                VariableCall loop_check = generate_variable_to(condition, while_statement.condition_block, LiteralType.BOOL());
-                while_statement.condition = loop_check;
+                while_statement.condition = generate_variable_to(condition, while_statement.condition_block, LiteralType.BOOL());
 
                 VariableAssign index_increment = new VariableAssign();
                 index_increment.variable_name = index.name;
