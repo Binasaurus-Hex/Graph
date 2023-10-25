@@ -767,7 +767,11 @@ public class Main {
             long[] bytecode = generator.generate_bytecode(full_directive);
             VirtualMachine vm = new VirtualMachine();
             long[] result = vm.run(bytecode);
-            return run_directive;
+            RawData raw_data = new RawData();
+            for(int i = 0; i < generator.get_size(return_statement.type); i++){
+                raw_data.data.add(result[i]);
+            }
+            return generate_variable_to(raw_data, generated_statements, null);
         }
 
 

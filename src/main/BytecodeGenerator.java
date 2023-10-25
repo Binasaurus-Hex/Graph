@@ -203,6 +203,9 @@ public class BytecodeGenerator {
                     bytecode.add(memory_address);
                     bytecode.add(value);
                 }
+                else if(assign.value instanceof RawData){
+                    System.out.println();
+                }
                 else if(assign.value instanceof VariableCall){
                     VariableCall variable_call = (VariableCall) assign.value;
                     long size = get_size(variable_call.type);
