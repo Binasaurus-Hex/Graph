@@ -30,25 +30,12 @@ main :: () {
     blue:   Color = { 0., 0., 1., 1. };
     black:  Color = { 0., 0., 0., 1. };
 
-    box_size := 100;
-
-    items: [5]Vector2i;
-
-    i := 0;
-    for item in items {
-        item = { i + 1, i + 2 };
-        i = i + 2;
-    }
-
-    for item in items {
-        print(item.x);
-    }
+    box_size := #run 50 + 50;
 
     while true {
         frame_begin();
         set_color(&black);
         fill_rect(0, 0, window_width, window_height);
-
         mouse_position := get_mouse_position();
 
         set_color(&orange);

@@ -271,6 +271,21 @@ public class Main {
                 variable_call.name = name;
                 return variable_call;
             }
+
+            case DIRECTIVE -> {
+                tokenizer.eat_token();
+                Token directive = tokenizer.peek_token();
+                if(directive.type != Token.Type.IDENTIFIER){
+                    Utils.print_token_error(tokenizer, "invalid directive");
+                }
+                tokenizer.eat_token();
+                String text = get_identifier_text(tokenizer.program_text, directive);
+                if(text.equals("run")){
+                    RunDirective run_directive = new RunDirective();
+                    run_directive.expression = parse_expression(tokenizer);
+                    return run_directive;
+                }
+            }
         }
         return null;
     }
@@ -717,6 +732,45 @@ public class Main {
     }
 
     static Node flatten_expression(Node expression, List<Node> generated_statements, boolean top_level, Node type, Scope scope){
+        if(expression instanceof RunDirective){
+            RunDirective run_directive = (RunDirective) expression;
+            List<Node> run_directive_statements = new ArrayList<>();
+            Scope directive_scope = scope.duplicate();
+            run_directive.expression = flatten_expression(run_directive.expression, run_directive_statements, false, null, directive_scope);
+            if(type == null){
+                VariableCall run_expression = (VariableCall) run_directive.expression;
+                type = run_expression.type;
+            }
+
+            ProcedureDeclaration run_procedure = new ProcedureDeclaration();
+            run_procedure.name = "main";
+            run_procedure.outputs = new ArrayList<>();
+            run_procedure.inputs = new ArrayList<>();
+            run_procedure.outputs.add(type);
+            Return return_statement = new Return();
+            return_statement.procedure = run_procedure;
+            return_statement.type = type;
+            return_statement.value = run_directive.expression;
+            run_directive_statements.add(return_statement);
+
+            run_procedure.block = run_directive_statements;
+
+            List<Node> full_directive = new ArrayList<>();
+            full_directive.add(run_procedure);
+            ProcedureCall procedureCall = new ProcedureCall();
+            procedureCall.name = run_procedure.name;
+            procedureCall.procedure = run_procedure;
+            procedureCall.inputs = new ArrayList<>();
+            full_directive.add(procedureCall);
+
+            BytecodeGenerator generator = new BytecodeGenerator();
+            long[] bytecode = generator.generate_bytecode(full_directive);
+            VirtualMachine vm = new VirtualMachine();
+            long[] result = vm.run(bytecode);
+            return run_directive;
+        }
+
+
         if(expression instanceof VariableCall){
             VariableCall variable_call = (VariableCall)expression;
             VariableDeclaration declaration = scope.find_variable(variable_call.name);

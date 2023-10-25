@@ -39,6 +39,8 @@ public class Token {
         CLOSE_BRACE("}"),
         OPEN_PARENTHESIS("("),
         CLOSE_PARENTHESIS(")"),
+
+        DIRECTIVE("#"),
         COLON(":"),
         SEMI_COLON(";"),
         LESS_THAN("<"),

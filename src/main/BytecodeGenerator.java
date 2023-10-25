@@ -14,6 +14,16 @@ public class BytecodeGenerator {
     Map<String, Long> externals = new HashMap<>();
     Map<String, Boolean> external_returns = new HashMap<>();
 
+    class ProcedureCallLocation {
+        String procedure;
+        int program_index;
+        public ProcedureCallLocation(String procedure, int program_index){
+            this.procedure = procedure;
+            this.program_index = program_index;
+        }
+    }
+    List<ProcedureCallLocation> function_call_locations = new ArrayList<>();
+
     class Scope {
         Map<String, Node> types = new HashMap<>();
         Map<String, Long> locals = new HashMap<>(); // variable name to stack offset
@@ -24,7 +34,6 @@ public class BytecodeGenerator {
     class Context {
         Scope scope = new Scope();
         long stack_offset;
-        int main_jump_index; // index in the code where to change the main index
     }
 
     long[] generate_bytecode(List<Node> program){
@@ -57,9 +66,6 @@ public class BytecodeGenerator {
             if(node instanceof ProcedureDeclaration){
                 ProcedureDeclaration procedure = (ProcedureDeclaration) node;
                 long program_line = bytecode.size();
-                if(procedure.name.equals("main")){
-                    bytecode.set(global_context.main_jump_index, program_line);
-                }
                 global_scope.labels.put(procedure.name, program_line);
                 global_scope.procedures.put(procedure.name, procedure);
                 Context context = new Context();
@@ -92,6 +98,12 @@ public class BytecodeGenerator {
                 bytecode.add(RETURN.code());
                 bytecode.add((long)procedure.inputs.size());
             }
+        }
+
+        // linking
+        for(ProcedureCallLocation value: function_call_locations){
+            long location = global_context.scope.labels.get(value.procedure);
+            bytecode.set(value.program_index, location);
         }
 
         long[] final_bytecode = new long[bytecode.size()];
@@ -374,48 +386,46 @@ public class BytecodeGenerator {
                 }
                 else{
                     bytecode.add(CALL_PROCEDURE.code());
-                    long procedure_location;
-                    if(call.name.equals("main")){
-                        context.main_jump_index = bytecode.size();
-                        procedure_location = -1; // gets specified later once we know the location of main
-                    }
-                    else{
-                        procedure_location = context.scope.labels.get(call.name);
-                    }
-                    bytecode.add(procedure_location);
+                    int location = bytecode.size();
+                    function_call_locations.add(new ProcedureCallLocation(call.name, location));
+                    System.out.printf("putting 22 at location %d\n", location);
+                    bytecode.add(-22L);
                 }
             }
 
             if(node instanceof If){
                 If if_statement = (If) node;
                 VariableCall var_call = (VariableCall) if_statement.condition;
+
                 bytecode.add(JUMP_IF_NOT.code());
-
-                List<Long> block_bytecode = new ArrayList<>();
-                generate_bytecode(if_statement.block, block_bytecode, context);
-
-                bytecode.add((long)(block_bytecode.size() + 1));
+                int jump_to_end_index = bytecode.size();
+                bytecode.add(-22L);
                 bytecode.add(context.scope.locals.get(var_call.name));
-                bytecode.addAll(block_bytecode);
+
+                generate_bytecode(if_statement.block, bytecode, context);
+                bytecode.set(jump_to_end_index, (long) bytecode.size());
             }
 
             if(node instanceof While){
                 While while_statement = (While) node;
 
-                List<Long> block_bytecode = new ArrayList<>();
-                generate_bytecode(while_statement.block, block_bytecode, context);
                 bytecode.add(JUMP.code());
-                bytecode.add((long)block_bytecode.size());
 
-                long block = bytecode.size();
+                int jump_condition_index = bytecode.size(); // jump to condition
+                bytecode.add(-22L);
 
-                bytecode.addAll(block_bytecode);
+                long block_label = bytecode.size();
 
-                List<Long> condition = new ArrayList<>();
-                generate_bytecode(while_statement.condition_block, condition, context);
-                bytecode.addAll(condition);
+                generate_bytecode(while_statement.block, bytecode, context);
+
+                long condition_label = bytecode.size();
+                bytecode.set(jump_condition_index, condition_label);
+
+                generate_bytecode(while_statement.condition_block, bytecode, context);
+
                 bytecode.add(JUMP_IF.code());
-                bytecode.add(block - bytecode.size() - 1);
+                bytecode.add(block_label);
+
                 VariableCall condition_var = (VariableCall) while_statement.condition;
                 bytecode.add(context.scope.locals.get(condition_var.name));
 
@@ -431,18 +441,6 @@ public class BytecodeGenerator {
   while end     ...
                  */
 
-            }
-            if(node instanceof For){
-                For for_statement = (For) node;
-                /*
-                sequence: Arr
-                i := 0
-                it :value
-                while i < len(sequence) {
-                    // do stuff
-                    i = i + 1
-                }
-                 */
             }
 
             if(node instanceof Return){

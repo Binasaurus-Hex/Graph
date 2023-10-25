@@ -198,9 +198,7 @@ public class VirtualMachine {
                 }
 
                 case JUMP -> {
-                    int location = (int)program[program_counter++];
-                    int literal_location = program_counter + location;
-                    program_counter = literal_location;
+                    program_counter = (int)program[program_counter++];
                 }
 
                 case JUMP_ABSOLUTE -> {
@@ -209,18 +207,16 @@ public class VirtualMachine {
 
                 case JUMP_IF -> {
                     int location = (int)program[program_counter++];
-                    int literal_location = program_counter + location;
                     int boolean_address = (int)program[program_counter++];
                     if(stack[base_pointer + boolean_address] == 1){
-                        program_counter = literal_location;
+                        program_counter = location;
                     }
                 }
                 case JUMP_IF_NOT -> {
                     int location = (int)program[program_counter++];
-                    int literal_location = program_counter + location;
                     int boolean_address = (int)program[program_counter++];
                     if(stack[base_pointer + boolean_address] != 1){
-                        program_counter = literal_location;
+                        program_counter = location;
                     }
                 }
 

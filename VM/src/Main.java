@@ -23,7 +23,7 @@ public class Main {
         try {
             long[] program = convertByteArrayToLongArray(Files.readAllBytes(Path.of(filename)));
             VirtualMachine vm = new VirtualMachine();
-            vm.run(program);
+            long[] output = vm.run(program);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
