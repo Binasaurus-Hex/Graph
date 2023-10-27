@@ -68,7 +68,6 @@ Ball :: struct {
 accelerate :: (ball: *Ball, a: Vector2){
     ball.acceleration.x = ball.acceleration.x + a.x;
     ball.acceleration.y = ball.acceleration.y + a.y;
-    <-;
 }
 
 update_position :: (ball: *Ball, delta: float){
@@ -78,7 +77,6 @@ update_position :: (ball: *Ball, delta: float){
 
     ball.position = add(ball.position, add(velocity, mul_s(ball.acceleration, delta * delta)));
     ball.acceleration = { 0. , 0. };
-    <-;
 }
 
 constrain_to_circle :: (ball: *Ball, circle: *Circle){

@@ -27,7 +27,8 @@ public class VirtualMachine {
         while (program_counter < program.length) {
             if(stack_pointer > max_stack_ptr){
                 max_stack_ptr = stack_pointer;
-                System.out.println(max_stack_ptr);
+                // memory leak detection
+                //System.out.println(max_stack_ptr);
             }
             InstructionSet instruction = instructions[(int)program[program_counter++]];
             switch (instruction){

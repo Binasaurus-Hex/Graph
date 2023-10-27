@@ -95,8 +95,10 @@ public class BytecodeGenerator {
                 long stack_size = context.stack_offset;
                 bytecode.set(allocation_index, stack_size);
 
-                bytecode.add(RETURN.code());
-                bytecode.add((long)procedure.inputs.size());
+                // failsafe return
+                Return return_statement = new Return();
+                return_statement.procedure = procedure;
+                generate_bytecode(Collections.singletonList(return_statement), bytecode, context);
             }
         }
 
