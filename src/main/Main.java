@@ -1247,6 +1247,7 @@ public class Main {
 
         long start = System.nanoTime();
 
+        String program_name = Path.of(args[0]).getFileName().toString().split("\\.")[0];
         String program_text = read_file_as_text(args[0]);
         List<Token> tokens = tokenize(program_text);
         System.out.printf("tokenizing :: %f seconds\n", (System.nanoTime() - start) / 1e9);
@@ -1324,7 +1325,7 @@ public class Main {
         ByteBuffer buffer = ByteBuffer.allocate(bytecode.length * Long.BYTES);
         buffer.asLongBuffer().put(bytecode);
         try {
-            Files.write(Path.of("main.txt"), buffer.array());
+            Files.write(Path.of(String.format("%s.bytecode", program_name)), buffer.array());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

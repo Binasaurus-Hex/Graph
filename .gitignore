@@ -2,3 +2,4 @@
 /out
 main.txt
 *.graph
+*.gitignore
