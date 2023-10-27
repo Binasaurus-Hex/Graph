@@ -109,6 +109,12 @@ public class ExternalProcedures {
         graphics.fillRect((int)x, (int)y, (int)width, (int)height);
     }
 
+    public static void fill_circle(long x, long y, long radius){
+        if(graphics == null)return;
+        graphics.setColor(color);
+        graphics.fillOval((int)(x - radius), (int)(y - radius), (int)(radius * 2), (int)(radius * 2));
+    }
+
     public static long key_pressed(long key){
         return key_pressed.getOrDefault((int)key, false) ? 1 : 0;
     }

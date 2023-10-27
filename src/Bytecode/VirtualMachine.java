@@ -21,8 +21,14 @@ public class VirtualMachine {
         int base_pointer = 0;
         int program_counter = 0;
 
+        int max_stack_ptr = 0;
+
         InstructionSet[] instructions = InstructionSet.values();
         while (program_counter < program.length) {
+            if(stack_pointer > max_stack_ptr){
+                max_stack_ptr = stack_pointer;
+                System.out.println(max_stack_ptr);
+            }
             InstructionSet instruction = instructions[(int)program[program_counter++]];
             switch (instruction){
                 case ALLOCATE -> {
@@ -68,10 +74,22 @@ public class VirtualMachine {
                     }
                 }
 
+                case ASSIGN_TO_LOCATION_FROM_LOCATION -> {
+                    int to_location = (int)stack[base_pointer + (int)program[program_counter++]];
+                    int from_location = (int)stack[base_pointer + (int)program[program_counter++]];
+                    int size = (int)program[program_counter++];
+                    for(int i = 0; i < size; i++){
+                        stack[to_location + i] = stack[from_location + i];
+                    }
+                }
+
                 case PUSH_MEMORY -> {
                     int memory_address = (int)program[program_counter++];
-                    long value = stack[base_pointer + memory_address];
-                    stack[stack_pointer++] = value;
+                    int size = (int)program[program_counter++];
+                    for(int i = 0; i < size; i++){
+                        long value = stack[base_pointer + memory_address + i];
+                        stack[stack_pointer++] = value;
+                    }
                 }
 
                 case ASSIGN_POP -> {

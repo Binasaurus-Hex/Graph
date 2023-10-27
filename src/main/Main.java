@@ -871,15 +871,22 @@ public class Main {
             for(int i = 0; i < procedure_call.inputs.size(); i++){
                 VariableDeclaration input = (VariableDeclaration) procedure_declaration.inputs.get(i);
                 VariableCall flattened_input = (VariableCall) flatten_expression (procedure_call.inputs.get(i), generated_statements, false, input.type, scope);
+                if(flattened_input.type instanceof Location){
+                    Location location = (Location) flattened_input.type;
+                    if(input.type instanceof PointerType){
+                        PointerType pointer = new PointerType();
+                        pointer.type = location.type;
+                        flattened_input.type = pointer;
+                    }
+                    else{
+                        flattened_input = generate_variable_to(flattened_input, generated_statements, location.type);
+                    }
+                }
                 if(!types_equal(input.type, flattened_input.type)){
                     System.out.println(String.format("error type mismatch %s cannot be assigned to variable of type %s", input.name, type_to_string(flattened_input.type)));
                     System.exit(0);
                 }
 
-                if(flattened_input.type instanceof Location){
-                    Location location = (Location) flattened_input.type;
-                    flattened_input = generate_variable_to(flattened_input, generated_statements, location.type);
-                }
                 procedure_call.inputs.set(i, flattened_input);
             }
 
@@ -1164,6 +1171,10 @@ public class Main {
                 index.type = LiteralType.INT();
                 output.add(index);
                 sub_scope.variable_map.put(index.name, index);
+                VariableAssign index_assign = new VariableAssign();
+                index_assign.variable_name = index.name;
+                index_assign.value = new Literal<>(0);
+                output.add(index_assign);
 
                 VariableCall index_call = new VariableCall();
                 index_call.type = index.type;

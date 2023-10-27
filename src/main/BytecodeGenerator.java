@@ -203,9 +203,6 @@ public class BytecodeGenerator {
                     bytecode.add(memory_address);
                     bytecode.add(value);
                 }
-                else if(assign.value instanceof RawData){
-                    System.out.println();
-                }
                 else if(assign.value instanceof VariableCall){
                     VariableCall variable_call = (VariableCall) assign.value;
                     long size = get_size(variable_call.type);
@@ -227,6 +224,13 @@ public class BytecodeGenerator {
                         System.out.printf("");
                     }
                     bytecode.add(size);
+                }
+                else if (assign.value instanceof RunDirective){
+                    List<Long> run_bytecode = new ArrayList<>(bytecode.size());
+                    run_bytecode.addAll(bytecode);
+
+                    // declare procedure
+                    // declare procedure call
                 }
                 else if(assign.value instanceof BinaryOperator){
                     BinaryOperator operator = (BinaryOperator) assign.value;
@@ -381,6 +385,7 @@ public class BytecodeGenerator {
 
                     bytecode.add(PUSH_MEMORY.code());
                     bytecode.add(context.scope.locals.get(variable_call.name));
+                    bytecode.add(get_size(variable_call.type));
                 }
 
                 if(call.external){
@@ -391,7 +396,6 @@ public class BytecodeGenerator {
                     bytecode.add(CALL_PROCEDURE.code());
                     int location = bytecode.size();
                     function_call_locations.add(new ProcedureCallLocation(call.name, location));
-                    System.out.printf("putting 22 at location %d\n", location);
                     bytecode.add(-22L);
                 }
             }
@@ -457,8 +461,16 @@ public class BytecodeGenerator {
                     bytecode.add(get_size(value.type));
                 }
 
+                bytecode.add(DEALLOCATE.code());
+                bytecode.add(context.stack_offset);
+
                 bytecode.add(RETURN.code());
-                bytecode.add((long)return_statement.procedure.inputs.size());
+                long inputs_size = 0;
+                for(Node input : return_statement.procedure.inputs){
+                    VariableDeclaration decl = (VariableDeclaration)input;
+                    inputs_size += get_size(decl.type);
+                }
+                bytecode.add(inputs_size);
             }
         }
     }
