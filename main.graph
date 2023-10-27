@@ -62,6 +62,7 @@ Ball :: struct {
     position: Vector2;
     previous_position: Vector2;
     acceleration: Vector2;
+    radius: float;
 }
 
 accelerate :: (ball: *Ball, a: Vector2){
@@ -81,7 +82,24 @@ update_position :: (ball: *Ball, delta: float){
 }
 
 constrain_to_circle :: (ball: *Ball, circle: *Circle){
+    displacement := sub(ball.position, circle.centre);
+    if length(displacement) > circle.radius - ball.radius {
+        value : Vector2 = add(circle.centre, mul_s(normalized(displacement), circle.radius - ball.radius));
+        ball.position = value;
+    }
+}
 
+get_balls :: () -> [200]Ball {
+    balls: [200]Ball;
+    i := 1;
+    for ball in balls {
+        ball.radius = 10.;
+        ball.position = { 400. + float(i) * (ball.radius * 2.0), 500. };
+        ball.previous_position = { 400. + float(i) * (ball.radius * 2.0), 500. + float(i) * 0.01 };
+        ball.acceleration = { 0., 9.81 };
+        i = i + 1;
+    }
+    <- balls;
 }
 
 main :: () {
@@ -96,17 +114,9 @@ main :: () {
     blue:   Color = { 0., 0., 1., 1. };
     black:  Color = { 0., 0., 0., 1. };
 
-    ball_size := 10.;
     gravity: Vector2 = { 0. , 9.81 * 10. };
 
-    balls: [200]Ball;
-    i := 1;
-    for ball in balls {
-        ball.position = { 400. + float(i) * (ball_size * 2.0), 500. };
-        ball.previous_position = { 400. + float(i) * (ball_size * 2.0), 500. + float(i) * 0.01 };
-        ball.acceleration = { 0., 9.81 };
-        i = i + 1;
-    }
+    balls := get_balls();
 
     environment: Circle = { { 500. , 500. }, 400. };
 
@@ -129,17 +139,11 @@ main :: () {
 
         for ball in balls {
             update_position(ball, delta);
-
-
-            displacement : Vector2 = sub(ball.position, environment.centre);
-            if length(displacement) > environment.radius - ball_size {
-                value : Vector2 = add(environment.centre, mul_s(normalized(displacement), environment.radius - ball_size));
-                ball.position = value;
-            }
+            constrain_to_circle(ball, &environment);
         }
 
         for ball in balls {
-            fill_circle(int(ball.position.x), int(ball.position.y), int(ball_size));
+            fill_circle(int(ball.position.x), int(ball.position.y), int(ball.radius));
         }
 
         draw();
