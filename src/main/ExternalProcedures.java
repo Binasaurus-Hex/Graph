@@ -9,24 +9,24 @@ import java.util.Map;
 
 public class ExternalProcedures {
 
-    public static void print(long value){
+    public static void print(int value){
         System.out.println(value);
     }
 
-    public static void print_float(double value){
+    public static void print_float(float value){
         System.out.println(value);
     }
 
-    public static double _float(long value){
-        return (double) value;
+    public static float _float(int value){
+        return (float) value;
     }
 
-    public static double time_seconds(){
-        return System.nanoTime() / 1e9;
+    public static float time_seconds(){
+        return (float)(System.nanoTime() / 1e9);
     }
 
-    public static long _int(double value){
-        return (long) value;
+    public static int _int(float value){
+        return (int) value;
     }
 
     static JFrame frame;
@@ -40,7 +40,7 @@ public class ExternalProcedures {
 
     static Color color = new Color(0, 0, 0, 1);
 
-    public static void open_window(long width, long height){
+    public static void open_window(int width, int height){
         System.out.println("opening window");
         frame = new JFrame();
         frame.setSize((int)width, (int)height);
@@ -87,8 +87,8 @@ public class ExternalProcedures {
         }
     }
 
-    public static void extern_set_colour(double r, double g, double b, double a){
-        color = new Color((float)r, (float)g, (float)b, (float)a);
+    public static void extern_set_colour(float r, float g, float b, float a){
+        color = new Color(r, g, b, a);
     }
 
     public static void clear_screen(){
@@ -103,31 +103,31 @@ public class ExternalProcedures {
         graphics.dispose();
     }
 
-    public static void fill_rect(long x, long y, long width, long height){
+    public static void fill_rect(int x, int y, int width, int height){
         if(graphics == null)return;
         graphics.setColor(color);
-        graphics.fillRect((int)x, (int)y, (int)width, (int)height);
+        graphics.fillRect(x, y, width, height);
     }
 
-    public static void fill_circle(long x, long y, long radius){
+    public static void fill_circle(int x, int y, int radius){
         if(graphics == null)return;
         graphics.setColor(color);
-        graphics.fillOval((int)(x - radius), (int)(y - radius), (int)(radius * 2), (int)(radius * 2));
+        graphics.fillOval((x - radius), (y - radius), (radius * 2), (radius * 2));
     }
 
-    public static long key_pressed(long key){
+    public static int key_pressed(int key){
         return key_pressed.getOrDefault((int)key, false) ? 1 : 0;
     }
 
-    public static long get_mouse_x(){
+    public static int get_mouse_x(){
         return mouse_position.x;
     }
 
-    public static long get_mouse_y(){
+    public static int get_mouse_y(){
         return mouse_position.y;
     }
 
-    public static double sqrt(double x){
-        return Math.sqrt(x);
+    public static float sqrt(float x){
+        return (float) Math.sqrt(x);
     }
 }

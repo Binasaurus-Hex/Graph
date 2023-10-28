@@ -6,24 +6,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class Main {
-    public static long[] convertByteArrayToLongArray(byte[] bytes) {
+    public static int[] convertByteArrayToIntArray(byte[] bytes) {
         if (bytes == null)
             return null;
 
-        int count = bytes.length / 8;
-        long[] longArray = new long[count];
+        int count = bytes.length / Integer.BYTES;
+        int[] longArray = new int[count];
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         for (int i = 0; i < count; i++) {
-            longArray[i] = byteBuffer.getLong();
+            longArray[i] = byteBuffer.getInt();
         }
         return longArray;
     }
     public static void main(String[] args) {
         String filename = args[0];
         try {
-            long[] program = convertByteArrayToLongArray(Files.readAllBytes(Path.of(filename)));
+            int[] program = convertByteArrayToIntArray(Files.readAllBytes(Path.of(filename)));
             VirtualMachine vm = new VirtualMachine();
-            long[] output = vm.run(program);
+            int[] output = vm.run(program);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

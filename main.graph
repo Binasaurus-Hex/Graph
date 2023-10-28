@@ -108,7 +108,7 @@ collide :: (a: *Ball, b: *Ball){
 }
 
 get_balls :: () -> [200]Ball {
-    balls: [50]Ball;
+    balls: [200]Ball;
     i := 1;
     for ball in balls {
         ball.radius = 10.;
@@ -142,6 +142,8 @@ main :: () {
 
     start := time_seconds();
     delta := 0.;
+
+    balls[50].radius = 20.;
 
     while true {
         frame_begin();

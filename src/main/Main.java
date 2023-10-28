@@ -764,13 +764,13 @@ public class Main {
             full_directive.add(procedureCall);
 
             BytecodeGenerator generator = new BytecodeGenerator();
-            long[] bytecode = generator.generate_bytecode(full_directive);
+            int[] bytecode = generator.generate_bytecode(full_directive);
             VirtualMachine vm = new VirtualMachine();
-            long[] result = vm.run(bytecode);
+            int[] result = vm.run(bytecode);
             RawData raw_data = new RawData();
-            for(int i = 0; i < generator.get_size(return_statement.type); i++){
-                raw_data.data.add(result[i]);
-            }
+//            for(int i = 0; i < generator.get_size(return_statement.type); i++){
+//                raw_data.data.add(result[i]);
+//            }
             return generate_variable_to(raw_data, generated_statements, null);
         }
 
@@ -1024,7 +1024,7 @@ public class Main {
                 LiteralType op_type = (LiteralType) var_call.type;
                 switch (op_type.type){
                     case FLOAT -> {
-                        Literal<Double> zero = new Literal<>(0.0);
+                        Literal<Float> zero = new Literal<>(0.0f);
                         binary_operator.left = generate_variable_to(zero, generated_statements, op_type);
                     }
                     case INT -> {
@@ -1233,8 +1233,8 @@ public class Main {
         LiteralType literal_type = new LiteralType();
 
         literal_type.type = switch (java_type){
-            case "long" -> LiteralType.Type.INT;
-            case "double" -> LiteralType.Type.FLOAT;
+            case "int" -> LiteralType.Type.INT;
+            case "float" -> LiteralType.Type.FLOAT;
             case "bool" -> LiteralType.Type.BOOL;
             default -> null;
         };
@@ -1317,13 +1317,13 @@ public class Main {
         stopMark = System.nanoTime();
 
         BytecodeGenerator generator = new BytecodeGenerator();
-        long[] bytecode = generator.generate_bytecode(program);
+        int[] bytecode = generator.generate_bytecode(program);
 
         System.out.printf("bytecode generation :: %f seconds\n", (System.nanoTime() - stopMark) / 1e9);
         stopMark = System.nanoTime();
 
-        ByteBuffer buffer = ByteBuffer.allocate(bytecode.length * Long.BYTES);
-        buffer.asLongBuffer().put(bytecode);
+        ByteBuffer buffer = ByteBuffer.allocate(bytecode.length * Integer.BYTES);
+        buffer.asIntBuffer().put(bytecode);
         try {
             Files.write(Path.of(String.format("%s.bytecode", program_name)), buffer.array());
         } catch (IOException e) {
@@ -1336,7 +1336,7 @@ public class Main {
         if (args.length == 1)return;
         if(args[1].equals("-run") || args[1].equals("-r")){
             VirtualMachine vm = new VirtualMachine();
-            long[] output = vm.run(bytecode);
+            int[] output = vm.run(bytecode);
             System.out.println("return code : " + output[0]); // return code
         }
     }

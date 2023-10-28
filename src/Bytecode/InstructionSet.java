@@ -44,7 +44,7 @@ public enum InstructionSet {
     ARRAY_PTR_LOCATION,
     PUSH_MEMORY;
 
-    public long code(){
-        return (long)ordinal();
+    public int code(){
+        return ordinal();
     }
 }
