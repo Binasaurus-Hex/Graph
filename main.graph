@@ -107,8 +107,8 @@ collide :: (a: *Ball, b: *Ball){
     }
 }
 
-get_balls :: () -> [200]Ball {
-    balls: [200]Ball;
+get_balls :: () -> [100]Ball {
+    balls: [100]Ball;
     i := 1;
     for ball in balls {
         ball.radius = 10.;
@@ -134,7 +134,7 @@ main :: () {
     black:  Color = { 0., 0., 0., 1. };
     white: Color = {1., 1., 1., 1., };
 
-    gravity: Vector2 = { 0. , 9.81 * 40. };
+    gravity: Vector2 = { 0. , 9.81 * 100. };
 
     balls := get_balls();
 
@@ -142,8 +142,6 @@ main :: () {
 
     start := time_seconds();
     delta := 0.;
-
-    balls[50].radius = 20.;
 
     while true {
         frame_begin();
@@ -156,7 +154,8 @@ main :: () {
         set_color(&white);
 
         mouse_position := get_mouse_position();
-        balls[50].position = { float(mouse_position.x), float(mouse_position.y) };
+
+        environment.centre = { float(mouse_position.x), float(mouse_position.y) };
 
         // update
         for ball in balls {
@@ -183,7 +182,6 @@ main :: () {
         draw();
         current := time_seconds();
         delta = current - start;
-        print_float(1.0 / delta);
         start = current;
     }
 }
