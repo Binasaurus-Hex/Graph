@@ -21,11 +21,7 @@ public enum InstructionSet {
     JUMP_IF_NOT,
 
     PROCEDURE_HEADER,
-    SET_BASE_PTR,
-
-
     JUMP,
-
     JUMP_ABSOLUTE,
     CALL_PROCEDURE,
     RETURN,

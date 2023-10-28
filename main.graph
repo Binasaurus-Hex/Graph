@@ -24,6 +24,10 @@ div :: (a: Vector2, b: Vector2) -> Vector2 {
     <- { a.x / b.x, a.y / b.y };
 }
 
+div_s :: (a: Vector2, s: float) -> Vector2 {
+    <- { a.x / s, a.y / s };
+}
+
 length :: (v: Vector2) -> float {
     <- sqrt(v.x * v.x + v.y * v.y);
 }
@@ -63,11 +67,11 @@ Ball :: struct {
     previous_position: Vector2;
     acceleration: Vector2;
     radius: float;
+    id: int;
 }
 
 accelerate :: (ball: *Ball, a: Vector2){
-    ball.acceleration.x = ball.acceleration.x + a.x;
-    ball.acceleration.y = ball.acceleration.y + a.y;
+    ball.acceleration = add(ball.acceleration, a);
 }
 
 update_position :: (ball: *Ball, delta: float){
@@ -87,14 +91,31 @@ constrain_to_circle :: (ball: *Ball, circle: *Circle){
     }
 }
 
+collide :: (a: *Ball, b: *Ball){
+    if a.id == b.id {
+        <-;
+    }
+    axis := sub(a.position, b.position);
+    distance := length(axis);
+    total_radius := a.radius + b.radius;
+    if(distance < total_radius){
+        normal := div_s(axis, distance);
+        overlap := total_radius - distance;
+        offset := mul_s(normal, 0.5 * overlap);
+        a.position = add(a.position, offset);
+        b.position = sub(b.position, offset);
+    }
+}
+
 get_balls :: () -> [200]Ball {
-    balls: [200]Ball;
+    balls: [50]Ball;
     i := 1;
     for ball in balls {
         ball.radius = 10.;
         ball.position = { 400. + float(i) * (ball.radius * 2.0), 500. };
         ball.previous_position = { 400. + float(i) * (ball.radius * 2.0), 500. + float(i) * 0.01 };
         ball.acceleration = { 0., 9.81 };
+        ball.id = i;
         i = i + 1;
     }
     <- balls;
@@ -111,8 +132,9 @@ main :: () {
     orange: Color = { 1., 0.3 + 0.2, 0., 1. };
     blue:   Color = { 0., 0., 1., 1. };
     black:  Color = { 0., 0., 0., 1. };
+    white: Color = {1., 1., 1., 1., };
 
-    gravity: Vector2 = { 0. , 9.81 * 10. };
+    gravity: Vector2 = { 0. , 9.81 * 40. };
 
     balls := get_balls();
 
@@ -123,14 +145,18 @@ main :: () {
 
     while true {
         frame_begin();
-        set_color(&black);
+        set_color(&white);
         fill_rect(0, 0, window_width, window_height);
 
-        set_color(&blue);
+        set_color(&black);
         fill_circle(int(environment.centre.x), int(environment.centre.y), int(environment.radius));
 
-        set_color(&orange);
+        set_color(&white);
 
+        mouse_position := get_mouse_position();
+        balls[50].position = { float(mouse_position.x), float(mouse_position.y) };
+
+        // update
         for ball in balls {
             accelerate(ball, gravity);
         }
@@ -140,6 +166,14 @@ main :: () {
             constrain_to_circle(ball, &environment);
         }
 
+        for ball_a in balls {
+            for ball_b in balls {
+              collide(ball_a, ball_b);
+            }
+        }
+
+
+        // render
         for ball in balls {
             fill_circle(int(ball.position.x), int(ball.position.y), int(ball.radius));
         }
@@ -147,6 +181,7 @@ main :: () {
         draw();
         current := time_seconds();
         delta = current - start;
+        print_float(1.0 / delta);
         start = current;
     }
 }

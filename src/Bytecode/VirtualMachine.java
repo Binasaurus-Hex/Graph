@@ -27,8 +27,6 @@ public class VirtualMachine {
         while (program_counter < program.length) {
             if(stack_pointer > max_stack_ptr){
                 max_stack_ptr = stack_pointer;
-                // memory leak detection
-                //System.out.println(max_stack_ptr);
             }
             InstructionSet instruction = instructions[(int)program[program_counter++]];
             switch (instruction){
@@ -192,7 +190,7 @@ public class VirtualMachine {
                 }
 
                 case RETURN -> {
-                    int inputs_size = (int)program[program_counter++];
+                    int inputs_size = (int)program[program_counter];
                     stack_pointer = base_pointer;
                     int previous_base_ptr = (int)stack[--stack_pointer];
                     int return_location = (int)stack[--stack_pointer];
@@ -217,11 +215,11 @@ public class VirtualMachine {
                 }
 
                 case JUMP -> {
-                    program_counter = (int)program[program_counter++];
+                    program_counter = (int)program[program_counter];
                 }
 
                 case JUMP_ABSOLUTE -> {
-                    program_counter = (int)program[program_counter++];
+                    program_counter = (int)program[program_counter];
                 }
 
                 case JUMP_IF -> {
