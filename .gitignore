@@ -2,4 +2,6 @@
 /out
 main.txt
 *.graph
+*.bytecode
 *.gitignore
+!verlet.graph
