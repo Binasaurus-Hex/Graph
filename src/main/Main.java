@@ -65,6 +65,7 @@ public class Main {
             case OPEN_BRACKET:  return BinaryOperator.Operation.INDEX;
             case IN:            return BinaryOperator.Operation.IN;
             case AND:           return BinaryOperator.Operation.AND;
+            case OR:            return BinaryOperator.Operation.OR;
         }
         return null;
     }
@@ -1016,7 +1017,7 @@ public class Main {
                 }
             }
 
-            if(operator.operation.is_comparison()){
+            if(operator.operation.is_comparison() || operator.operation.is_logical_operator()){
                 LiteralType literal_type = new LiteralType();
                 literal_type.type = LiteralType.Type.BOOL;
                 type = literal_type;
@@ -1256,7 +1257,7 @@ public class Main {
         literal_type.type = switch (java_type){
             case "int" -> LiteralType.Type.INT;
             case "float" -> LiteralType.Type.FLOAT;
-            case "bool" -> LiteralType.Type.BOOL;
+            case "boolean" -> LiteralType.Type.BOOL;
             default -> null;
         };
         return literal_type;

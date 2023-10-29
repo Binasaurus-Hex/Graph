@@ -145,7 +145,7 @@ public class VirtualMachine {
                     stack[base_pointer + memory_address] = array_ptr + index * size;
                 }
 
-                case ADD, SUBTRACT, MULTIPLY, DIVIDE, LESS_THAN, GREATER_THAN, EQUALS, AND -> {
+                case ADD, SUBTRACT, MULTIPLY, DIVIDE, LESS_THAN, GREATER_THAN, EQUALS, AND, OR -> {
                     int storage_location = (int)program[program_counter++];
                     int mem_a = (int)program[program_counter++];
                     int mem_b = (int)program[program_counter++];
@@ -156,6 +156,7 @@ public class VirtualMachine {
                         case GREATER_THAN -> a > b ? 1 : 0;
                         case EQUALS -> a == b ? 1 : 0;
                         case AND -> a == 1 && b == 1 ? 1 : 0;
+                        case OR -> a == 1 || b == 1 ? 1 : 0;
                         case ADD -> a + b;
                         case SUBTRACT -> a - b;
                         case MULTIPLY -> a * b;
@@ -247,8 +248,11 @@ public class VirtualMachine {
                         int value = stack[offset];
                         String type = parameter.getType().getName();
                         switch (type){
-                            case "bool", "int" ->{
+                            case "int" ->{
                                 args[i] = value;
+                            }
+                            case "boolean" -> {
+                                args[i] = value == 1;
                             }
                             case "float"->{
                                 args[i] = Float.intBitsToFloat(value);

@@ -105,8 +105,8 @@ collide :: (a: *Ball, b: *Ball){
     }
 }
 
-get_balls :: () -> [200]Ball {
-    balls: [200]Ball;
+get_balls :: () -> [150]Ball {
+    balls: [150]Ball;
     i := 1;
     row := 0;
     column := 0;
@@ -146,8 +146,6 @@ main :: () {
     balls := get_balls();
 
     environment: Circle = { { 500. , 500. }, 400. };
-
-    centre_ptr : *Vector2 = &environment.centre;
 
     start := time_seconds();
     delta := 0.;

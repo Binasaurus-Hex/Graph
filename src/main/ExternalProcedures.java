@@ -17,6 +17,10 @@ public class ExternalProcedures {
         System.out.println(value);
     }
 
+    public static void print_bool(boolean value){
+        System.out.println(value);
+    }
+
     public static float _float(int value){
         return (float) value;
     }

@@ -308,6 +308,7 @@ public class BytecodeGenerator {
                             else code = FLOAT_GREATER_THAN.code();
                         }
                         case AND -> code = AND.code();
+                        case OR -> code = OR.code();
                         case EQUALS -> {
                             if(a.type instanceof PointerType && b.type instanceof PointerType ||  literal_value_type.type == LiteralType.Type.INT)code = EQUALS.code();
                             else code = FLOAT_EQUALS.code();

@@ -4,6 +4,7 @@ public class BinaryOperator implements Node {
     public enum Operation {
         ASSIGN,
         AND,
+        OR,
         LESS_THAN,
         GREATER_THAN,
         EQUALS,
@@ -25,6 +26,13 @@ public class BinaryOperator implements Node {
                     return false;
                 }
             }
+        }
+
+        public boolean is_logical_operator(){
+            return switch (this){
+                case AND, OR -> true;
+                default -> false;
+            };
         }
     }
     public Operation operation;

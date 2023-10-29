@@ -10,6 +10,7 @@ public enum InstructionSet {
     GREATER_THAN,
 
     AND,
+    OR,
 
     FLOAT_ADD,
     FLOAT_SUBTRACT,
