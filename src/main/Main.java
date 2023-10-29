@@ -64,6 +64,7 @@ public class Main {
             case EQUALS:        return BinaryOperator.Operation.ASSIGN;
             case OPEN_BRACKET:  return BinaryOperator.Operation.INDEX;
             case IN:            return BinaryOperator.Operation.IN;
+            case AND:           return BinaryOperator.Operation.AND;
         }
         return null;
     }
@@ -994,6 +995,7 @@ public class Main {
                     VariableAssign variable_assign = new VariableAssign();
                     variable_assign.variable_name = left.name;
                     variable_assign.location = left.type instanceof Location;
+                    variable_assign.top_level = top_level;
                     variable_assign.value = right;
                     if(!types_equal(left.type, right.type)){
                         System.out.println(String.format("error type mismatch %s cannot be assigned to variable of type %s", left.name, type_to_string(right.type)));

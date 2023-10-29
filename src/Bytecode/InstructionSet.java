@@ -9,6 +9,8 @@ public enum InstructionSet {
     EQUALS,
     GREATER_THAN,
 
+    AND,
+
     FLOAT_ADD,
     FLOAT_SUBTRACT,
     FLOAT_MULTIPLY,

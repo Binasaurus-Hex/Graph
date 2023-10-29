@@ -145,7 +145,7 @@ public class VirtualMachine {
                     stack[base_pointer + memory_address] = array_ptr + index * size;
                 }
 
-                case ADD, SUBTRACT, MULTIPLY, DIVIDE, LESS_THAN, GREATER_THAN, EQUALS -> {
+                case ADD, SUBTRACT, MULTIPLY, DIVIDE, LESS_THAN, GREATER_THAN, EQUALS, AND -> {
                     int storage_location = (int)program[program_counter++];
                     int mem_a = (int)program[program_counter++];
                     int mem_b = (int)program[program_counter++];
@@ -155,6 +155,7 @@ public class VirtualMachine {
                         case LESS_THAN -> a < b ? 1 : 0;
                         case GREATER_THAN -> a > b ? 1 : 0;
                         case EQUALS -> a == b ? 1 : 0;
+                        case AND -> a == 1 && b == 1 ? 1 : 0;
                         case ADD -> a + b;
                         case SUBTRACT -> a - b;
                         case MULTIPLY -> a * b;

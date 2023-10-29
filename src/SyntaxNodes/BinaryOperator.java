@@ -3,6 +3,7 @@ package SyntaxNodes;
 public class BinaryOperator implements Node {
     public enum Operation {
         ASSIGN,
+        AND,
         LESS_THAN,
         GREATER_THAN,
         EQUALS,

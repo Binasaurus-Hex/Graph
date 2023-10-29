@@ -4,29 +4,13 @@ Vector2 :: struct {
     y: float;
 }
 // vector 2 operators
-add :: (a: *Vector2, b: *Vector2) -> Vector2 {
-    <- { a.x + b.x, a.y + b.y };
-}
+add :: (a: *Vector2, b: *Vector2) -> Vector2 { <-{ a.x + b.x, a.y + b.y }; }
+sub :: (a: *Vector2, b: *Vector2) -> Vector2 { <-{ a.x - b.x, a.y - b.y }; }
+mul :: (a: *Vector2, b: *Vector2) -> Vector2 { <-{ a.x * b.x, a.y * b.y }; }
+div :: (a: *Vector2, b: *Vector2) -> Vector2 { <-{ a.x / b.x, a.y / b.y }; }
 
-sub :: (a: *Vector2, b: *Vector2) -> Vector2 {
-    <- { a.x - b.x, a.y - b.y };
-}
-
-mul :: (a: *Vector2, b: *Vector2) -> Vector2 {
-    <- { a.x * b.x, a.y * b.y };
-}
-
-mul_s :: (a: *Vector2, s: float) -> Vector2 {
-    <- { a.x * s, a.y * s };
-}
-
-div :: (a: *Vector2, b: *Vector2) -> Vector2 {
-    <- { a.x / b.x, a.y / b.y };
-}
-
-div_s :: (a: *Vector2, s: float) -> Vector2 {
-    <- { a.x / s, a.y / s };
-}
+mul_s :: (a: *Vector2, s: float) -> Vector2 { <-{ a.x * s, a.y * s }; }
+div_s :: (a: *Vector2, s: float) -> Vector2 { <-{ a.x / s, a.y / s }; }
 
 length :: (v: *Vector2) -> float {
     <- sqrt(v.x * v.x + v.y * v.y);
@@ -40,6 +24,26 @@ normalized :: (v: *Vector2) -> Vector2 {
 Vector2i :: struct {
     x: int;
     y: int;
+}
+
+Timer :: struct {
+    elapsed: float;
+    time: float;
+    looping: bool;
+}
+
+timer_start :: (time: float) -> Timer {
+    <-{ 0., time, false };
+}
+
+timer_update :: (timer: *Timer, delta: float){
+    timer.elapsed = timer.elapsed + delta;
+}
+
+timer_complete :: (timer: *Timer) -> bool {
+    complete := timer.elapsed > timer.time;
+    if complete and timer.looping timer.elapsed = 0.;
+    <- complete;
 }
 
 Circle :: struct {
@@ -75,9 +79,7 @@ accelerate :: (ball: *Ball, a: *Vector2){
 
 update_position :: (ball: *Ball, delta: float){
     velocity := sub(ball.position, ball.previous_position);
-    prev: Vector2 = ball.position;
-    ball.previous_position = prev;
-
+    ball.previous_position = ball.position;
     ball.position = add(ball.position, add(velocity, mul_s(ball.acceleration, delta * delta)));
     ball.acceleration = { 0. , 0. };
 }
@@ -85,8 +87,7 @@ update_position :: (ball: *Ball, delta: float){
 constrain_to_circle :: (ball: *Ball, circle: *Circle){
     displacement := sub(ball.position, circle.centre);
     if length(displacement) > circle.radius - ball.radius {
-        value : Vector2 = add(circle.centre, mul_s(normalized(displacement), circle.radius - ball.radius));
-        ball.position = value;
+        ball.position = add(circle.centre, mul_s(normalized(displacement), circle.radius - ball.radius));
     }
 }
 
@@ -104,8 +105,8 @@ collide :: (a: *Ball, b: *Ball){
     }
 }
 
-get_balls :: () -> [100]Ball {
-    balls: [100]Ball;
+get_balls :: () -> [200]Ball {
+    balls: [200]Ball;
     i := 1;
     row := 0;
     column := 0;
@@ -152,11 +153,28 @@ main :: () {
     delta := 0.;
 
     frames := 0;
-    second_timer := 0.;
+
+    fps_timer := timer_start(1.0);
+    fps_timer.looping = true;
+
+    startup_timer := timer_start(2.0);
 
     startup := true;
 
     while true {
+        frames = frames + 1;
+        timer_update(&fps_timer, delta);
+        timer_update(&startup_timer, delta);
+
+        if timer_complete(&fps_timer) {
+            print(frames);
+            frames = 0;
+        }
+
+        if timer_complete(&startup_timer){
+            startup = false;
+        }
+
         frame_begin();
         set_color(&white);
         fill_rect(0, 0, window_width, window_height);
@@ -168,7 +186,7 @@ main :: () {
 
         mouse_position := get_mouse_position();
 
-        //environment.centre = { float(mouse_position.x), float(mouse_position.y) };
+        environment.centre = { float(mouse_position.x), float(mouse_position.y) };
 
         // update
         if startup == false {
@@ -197,15 +215,6 @@ main :: () {
 
         current := time_seconds();
         delta = current - start;
-        second_timer = second_timer + delta;
-        frames = frames + 1;
-
-        if second_timer > 1.0 {
-            startup = false;
-            print(frames);
-            frames = 0;
-            second_timer = 0.;
-        }
         start = current;
     }
 }

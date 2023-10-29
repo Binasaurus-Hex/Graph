@@ -217,6 +217,11 @@ public class BytecodeGenerator {
                         Location location = (Location) variable_call.type;
                         size = get_size(location.type);
                     }
+                    else if (assign.top_level && assign.location && variable_call.type instanceof Location){
+                        code = ASSIGN_TO_LOCATION_FROM_LOCATION.code();
+                        Location location = (Location) variable_call.type;
+                        size = get_size(location.type);
+                    }
 
                     bytecode.add(code);
                     bytecode.add(memory_address);
@@ -302,6 +307,7 @@ public class BytecodeGenerator {
                             if(literal_value_type.type == LiteralType.Type.INT)code = GREATER_THAN.code();
                             else code = FLOAT_GREATER_THAN.code();
                         }
+                        case AND -> code = AND.code();
                         case EQUALS -> {
                             if(a.type instanceof PointerType && b.type instanceof PointerType ||  literal_value_type.type == LiteralType.Type.INT)code = EQUALS.code();
                             else code = FLOAT_EQUALS.code();
