@@ -303,7 +303,7 @@ public class BytecodeGenerator {
                             else code = FLOAT_GREATER_THAN.code();
                         }
                         case EQUALS -> {
-                            if(literal_value_type.type == LiteralType.Type.INT)code = EQUALS.code();
+                            if(a.type instanceof PointerType && b.type instanceof PointerType ||  literal_value_type.type == LiteralType.Type.INT)code = EQUALS.code();
                             else code = FLOAT_EQUALS.code();
                         }
                         case ADD -> {
