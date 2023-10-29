@@ -344,9 +344,17 @@ public class BytecodeGenerator {
                     VariableCall variable = (VariableCall) operator.node;
                     switch (operator.operation){
                         case REFERENCE -> {
-                            bytecode.add(ASSIGN_ADDRESS.code());
-                            bytecode.add(memory_address);
-                            bytecode.add(context.scope.locals.get(variable.name));
+                            if(variable.type instanceof Location){
+                                bytecode.add(ASSIGN_MEMORY.code());
+                                bytecode.add(memory_address);
+                                bytecode.add(context.scope.locals.get(variable.name));
+                                bytecode.add(1);
+                            }
+                            else{
+                                bytecode.add(ASSIGN_ADDRESS.code());
+                                bytecode.add(memory_address);
+                                bytecode.add(context.scope.locals.get(variable.name));
+                            }
                         }
                         case DEREFERENCE -> {
                             bytecode.add(ASSIGN_DEREFERENCE.code());

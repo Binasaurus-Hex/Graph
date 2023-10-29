@@ -308,7 +308,7 @@ public class Main {
                     unary_operator.operation = UnaryOperator.Operation.MINUS;
                 }
             }
-            unary_operator.node = parse_subexpression(tokenizer);
+            unary_operator.node = parse_expression(tokenizer);
             subexpression = unary_operator;
             next_token = tokenizer.peek_token();
         }
@@ -445,8 +445,6 @@ public class Main {
     }
 
     static Node parse_statement(Tokenizer tokenizer){
-        Node statement;
-        boolean block_statement = false;
         Token name_or_keyword = tokenizer.peek_token();
         if(name_or_keyword.type == Token.Type.IDENTIFIER){
             String name = get_identifier_text(tokenizer.program_text, name_or_keyword);
@@ -871,6 +869,8 @@ public class Main {
             for(int i = 0; i < procedure_call.inputs.size(); i++){
                 VariableDeclaration input = (VariableDeclaration) procedure_declaration.inputs.get(i);
                 VariableCall flattened_input = (VariableCall) flatten_expression (procedure_call.inputs.get(i), generated_statements, false, input.type, scope);
+
+                // locations can be cast to either pointer or value
                 if(flattened_input.type instanceof Location){
                     Location location = (Location) flattened_input.type;
                     if(input.type instanceof PointerType){
@@ -882,6 +882,21 @@ public class Main {
                         flattened_input = generate_variable_to(flattened_input, generated_statements, location.type);
                     }
                 }
+                else{
+                    // for other types we do explicit reference
+                    if(input.type instanceof PointerType && !(flattened_input.type instanceof PointerType)){
+                        UnaryOperator reference = new UnaryOperator();
+                        reference.operation = UnaryOperator.Operation.REFERENCE;
+                        reference.node = flattened_input;
+
+                        PointerType pointer = new PointerType();
+                        pointer.type = flattened_input.type;
+
+                        flattened_input = generate_variable_to(reference, generated_statements, pointer);
+                    }
+                }
+
+
                 if(!types_equal(input.type, flattened_input.type)){
                     System.out.println(String.format("error type mismatch %s cannot be assigned to variable of type %s", input.name, type_to_string(flattened_input.type)));
                     System.exit(0);
@@ -1042,9 +1057,13 @@ public class Main {
             }
 
             if(operator.operation == UnaryOperator.Operation.REFERENCE){
-                PointerType pointer_type = new PointerType();
-                pointer_type.type = ((VariableCall)operator.node).type;
-                type = pointer_type;
+                PointerType pointer = new PointerType();
+                pointer.type = ((VariableCall)operator.node).type;
+                if(pointer.type instanceof Location){ // since locations are essentially pointers, we can just take a pointer to the underlying value
+                    Location location = (Location) pointer.type;
+                    pointer.type = location.type;
+                }
+                type = pointer;
             }
 
             if(!top_level){

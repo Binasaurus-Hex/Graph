@@ -22,7 +22,6 @@ public enum InstructionSet {
 
     PROCEDURE_HEADER,
     JUMP,
-    JUMP_ABSOLUTE,
     CALL_PROCEDURE,
     RETURN,
     PROGRAM_EXIT,

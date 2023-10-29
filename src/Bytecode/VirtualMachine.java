@@ -217,10 +217,6 @@ public class VirtualMachine {
                     program_counter = program[program_counter];
                 }
 
-                case JUMP_ABSOLUTE -> {
-                    program_counter = program[program_counter];
-                }
-
                 case JUMP_IF -> {
                     int location = program[program_counter++];
                     int boolean_address = program[program_counter++];

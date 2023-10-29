@@ -4,15 +4,15 @@ Vector2 :: struct {
     y: float;
 }
 // vector 2 operators
-add :: (a: Vector2, b: Vector2) -> Vector2 {
+add :: (a: *Vector2, b: *Vector2) -> Vector2 {
     <- { a.x + b.x, a.y + b.y };
 }
 
-sub :: (a: Vector2, b: Vector2) -> Vector2 {
+sub :: (a: *Vector2, b: *Vector2) -> Vector2 {
     <- { a.x - b.x, a.y - b.y };
 }
 
-mul :: (a: Vector2, b: Vector2) -> Vector2 {
+mul :: (a: *Vector2, b: *Vector2) -> Vector2 {
     <- { a.x * b.x, a.y * b.y };
 }
 
@@ -28,11 +28,11 @@ div_s :: (a: Vector2, s: float) -> Vector2 {
     <- { a.x / s, a.y / s };
 }
 
-length :: (v: Vector2) -> float {
+length :: (v: *Vector2) -> float {
     <- sqrt(v.x * v.x + v.y * v.y);
 }
 
-normalized :: (v: Vector2) -> Vector2 {
+normalized :: (v: *Vector2) -> Vector2 {
     size := length(v);
     <- { v.x / size, v.y / size };
 }
@@ -107,8 +107,8 @@ collide :: (a: *Ball, b: *Ball){
     }
 }
 
-get_balls :: () -> [100]Ball {
-    balls: [100]Ball;
+get_balls :: () -> [200]Ball {
+    balls: [200]Ball;
     i := 1;
     for ball in balls {
         ball.radius = 10.;
@@ -140,8 +140,13 @@ main :: () {
 
     environment: Circle = { { 500. , 500. }, 400. };
 
+    centre_ptr : *Vector2 = &environment.centre;
+
     start := time_seconds();
     delta := 0.;
+
+    frames := 0;
+    second_timer := 0.;
 
     while true {
         frame_begin();
@@ -180,8 +185,17 @@ main :: () {
         }
 
         draw();
+
         current := time_seconds();
         delta = current - start;
+        second_timer = second_timer + delta;
+        frames = frames + 1;
+
+        if second_timer > 1.0 {
+            print(frames);
+            frames = 0;
+            second_timer = 0.;
+        }
         start = current;
     }
 }
