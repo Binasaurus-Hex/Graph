@@ -136,10 +136,8 @@ main :: () {
     open_window(window_width, window_height);
 
     // colours
-    orange: Color = { 1., .3 + .2, 0., 1. };
-    blue:   Color = { 0., 0., 1., 1. };
     black:  Color = { 0., 0., 0., 1. };
-    white: Color = {1., 1., 1., 1., };
+    white:  Color = { 1., 1., 1., 1. };
 
     gravity: Vector2 = { 0. , 9.81 * 60. };
 
@@ -174,13 +172,13 @@ main :: () {
         }
 
         frame_begin();
-        set_color(&white);
+        set_color(white);
         fill_rect(0, 0, window_width, window_height);
 
-        set_color(&black);
+        set_color(black);
         fill_circle(int(environment.centre.x), int(environment.centre.y), int(environment.radius));
 
-        set_color(&white);
+        set_color(white);
 
         mouse_position := get_mouse_position();
 
