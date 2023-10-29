@@ -99,7 +99,7 @@ collide :: (a: *Ball, b: *Ball){
     if(distance < total_radius){
         normal := div_s(axis, distance);
         overlap : float = total_radius - distance;
-        offset := mul_s(normal, 0.5 * overlap);
+        offset := mul_s(normal, .5 * overlap);
         a.position = add(a.position, offset);
         b.position = sub(b.position, offset);
     }
@@ -119,7 +119,7 @@ get_balls :: () -> [150]Ball {
             column = 0;
         }
         ball.position = { 400. + float(column) * (ball.radius * 2.0 + spacing), 500. + float(row) * (ball.radius * 2.0 + spacing) };
-        val: Vector2 = { 0.0001, 0.0001 };
+        val: Vector2 = { .0001, .0001 };
         ball.previous_position = add(ball.position, val);
         ball.acceleration = { 0., 9.81 };
         column = column + 1;
@@ -136,7 +136,7 @@ main :: () {
     open_window(window_width, window_height);
 
     // colours
-    orange: Color = { 1., 0.3 + 0.2, 0., 1. };
+    orange: Color = { 1., .3 + .2, 0., 1. };
     blue:   Color = { 0., 0., 1., 1. };
     black:  Color = { 0., 0., 0., 1. };
     white: Color = {1., 1., 1., 1., };
@@ -155,7 +155,7 @@ main :: () {
     fps_timer := timer_start(1.0);
     fps_timer.looping = true;
 
-    startup_timer := timer_start(2.0);
+    startup_timer := timer_start(.5);
 
     startup := true;
 

@@ -207,6 +207,15 @@ public class Main {
                 }
                 return new Literal<Integer>(get_integer_value(tokenizer.program_text, int_token));
             }
+            case DOT -> {
+                Token number = tokenizer.peek_token(2);
+                if(number.type == Token.Type.INTEGER){
+                    tokenizer.eat_token(); // .
+                    tokenizer.eat_token(); // INT
+                    String decimal = get_identifier_text(tokenizer.program_text, number);
+                    return new Literal<Double>(Double.parseDouble("."+decimal));
+                }
+            }
             case STRING -> {
                 Token string_token = tokenizer.eat_token();
                 return new Literal<String>(get_string_text(tokenizer.program_text, string_token));
