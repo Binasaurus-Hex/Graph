@@ -142,19 +142,16 @@ main :: () {
     gravity: Vector2 = { 0. , 9.81 * 60. };
 
     balls := get_balls();
-
     environment: Circle = { { 500. , 500. }, 400. };
 
     start := time_seconds();
     delta := 0.;
-
     frames := 0;
 
     fps_timer := timer_start(1.0);
     fps_timer.looping = true;
 
     startup_timer := timer_start(.5);
-
     startup := true;
 
     while true {
@@ -181,7 +178,6 @@ main :: () {
         set_color(white);
 
         mouse_position := get_mouse_position();
-
         environment.centre = { float(mouse_position.x), float(mouse_position.y) };
 
         // update
