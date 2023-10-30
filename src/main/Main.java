@@ -746,9 +746,17 @@ public class Main {
             List<Node> run_directive_statements = new ArrayList<>();
             Scope directive_scope = scope.duplicate();
             run_directive.expression = flatten_expression(run_directive.expression, run_directive_statements, false, null, directive_scope);
+
+            List<Node> full_directive = new ArrayList<>();
             if(type == null){
                 VariableCall run_expression = (VariableCall) run_directive.expression;
                 type = run_expression.type;
+            }
+            for(ProcedureDeclaration procedure : scope.procedures){
+                if(procedure.name.equals("main"))continue;
+                else if(procedure == scope.enclosing_procedure)continue;
+                else if(procedure.external)continue;
+                full_directive.add(procedure);
             }
 
             ProcedureDeclaration run_procedure = new ProcedureDeclaration();
@@ -764,7 +772,7 @@ public class Main {
 
             run_procedure.block = run_directive_statements;
 
-            List<Node> full_directive = new ArrayList<>();
+
             full_directive.add(run_procedure);
             ProcedureCall procedureCall = new ProcedureCall();
             procedureCall.name = run_procedure.name;
@@ -777,10 +785,10 @@ public class Main {
             VirtualMachine vm = new VirtualMachine();
             int[] result = vm.run(bytecode);
             RawData raw_data = new RawData();
-//            for(int i = 0; i < generator.get_size(return_statement.type); i++){
-//                raw_data.data.add(result[i]);
-//            }
-            return generate_variable_to(raw_data, generated_statements, null);
+            for(int i = 0; i < generator.get_size(return_statement.type); i++){
+                raw_data.data.add(result[i]);
+            }
+            return generate_variable_to(raw_data, generated_statements, type);
         }
 
 

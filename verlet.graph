@@ -128,7 +128,16 @@ get_balls :: () -> [150]Ball {
     <- balls;
 }
 
+fibonacci :: (n: int) -> int {
+    if n == 0 <- 0;
+    if n == 1 <- 1;
+    <- fibonacci(n - 1) + fibonacci(n - 2);
+}
+
 main :: () {
+
+    // arbitrary compile time code execution
+    print(#run(fibonacci(40)));
 
     window_width := 1500;
     window_height := 1000;
@@ -141,7 +150,7 @@ main :: () {
 
     gravity: Vector2 = { 0. , 9.81 * 60. };
 
-    balls := get_balls();
+    balls := #run get_balls();
     environment: Circle = { { 500. , 500. }, 400. };
 
     start := time_seconds();

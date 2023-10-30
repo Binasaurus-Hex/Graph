@@ -43,6 +43,13 @@ public class VirtualMachine {
                     int value = program[program_counter++];
                     stack[base_pointer + to_memory] = value;
                 }
+                case ASSIGN_RAW_DATA -> {
+                    int to_memory = program[program_counter++];
+                    int size = program[program_counter++];
+                    for(int i = 0; i < size; i++){
+                        stack[base_pointer + to_memory + i] = program[program_counter++];
+                    }
+                }
                 case ASSIGN_MEMORY -> {
                     int to_memory = program[program_counter++];
                     int from_memory = program[program_counter++];

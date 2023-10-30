@@ -32,6 +32,8 @@ public enum InstructionSet {
     ALLOCATE,
     DEALLOCATE,
     ASSIGN_LITERAL,
+
+    ASSIGN_RAW_DATA,
     ASSIGN_MEMORY,
     ASSIGN_POP,
     ASSIGN_ADDRESS,

@@ -2,6 +2,7 @@ package main;
 
 import static Bytecode.InstructionSet.*;
 
+import Bytecode.InstructionSet;
 import SyntaxNodes.*;
 
 import java.lang.reflect.Method;
@@ -231,12 +232,12 @@ public class BytecodeGenerator {
                     }
                     bytecode.add(size);
                 }
-                else if (assign.value instanceof RunDirective){
-                    List<Integer> run_bytecode = new ArrayList<>(bytecode.size());
-                    run_bytecode.addAll(bytecode);
-
-                    // declare procedure
-                    // declare procedure call
+                else if(assign.value instanceof RawData){
+                    RawData raw_data = (RawData) assign.value;
+                    bytecode.add(ASSIGN_RAW_DATA.code());
+                    bytecode.add(memory_address);
+                    bytecode.add(raw_data.data.size());
+                    bytecode.addAll(raw_data.data);
                 }
                 else if(assign.value instanceof BinaryOperator){
                     BinaryOperator operator = (BinaryOperator) assign.value;
