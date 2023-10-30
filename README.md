@@ -8,15 +8,15 @@ Key goals :
 - lightning fast compile times
 - simple C like workflow, but with less awkwardness
 - minimal or zero dependencies
-- compile time execution (this is why I've added a bytecode intermediary)
 
-Features : 
+Features :
 - bool, float, and int types
 - arrays of aforementioned types
 - structs
 - type inference
 - pointers
 - ability to call out to java functions (limited to certain types)
+- abitrary compile time execution
 - now compiles to intermediate bytecode, and contains a virtual machine for running the bytecode.
 
 # Examples
