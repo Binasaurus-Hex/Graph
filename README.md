@@ -69,6 +69,19 @@ while counter < 100 {
   counter = counter + 1;
 }
 ```
+arbitrary compile time execution
+```go
+fibonacci :: (n: int) -> int {
+    if n == 0 <- 0;
+    if n == 1 <- 1;
+    <- fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+main :: () {
+    // value is computed at compile time, then stored and printed like a contant at runtime
+    print(#run fibonacci(40));
+}
+```
 
 # Moving a square around the screen
 ```go
