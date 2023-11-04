@@ -9,7 +9,11 @@ import java.util.Map;
 
 public class ExternalProcedures {
 
-    public static void print(int value){
+    public static void print_int(int value){
+        System.out.println(value);
+    }
+
+    public static void print(String value){
         System.out.println(value);
     }
 

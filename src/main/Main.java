@@ -436,6 +436,9 @@ public class Main {
                     case "float" -> literal.type = LiteralType.Type.FLOAT;
                     case "int" -> literal.type = LiteralType.Type.INT;
                     case "bool" -> literal.type = LiteralType.Type.BOOL;
+                    case "string" -> {
+                        StringType string_type = new StringType();
+                    }
                     default -> {
                         StructType struct = new StructType();
                         struct.name = text;
@@ -703,7 +706,13 @@ public class Main {
         declaration.type = type;
 
         if(expression instanceof Literal){
-            declaration.type = get_type((Literal)expression);
+            Literal<?> literal = (Literal<?>)expression;
+            if(literal.value instanceof String){
+                declaration.type = string;
+            }
+            else{
+                declaration.type = get_type(literal);
+            }
         }
 
         generated_statements.add(declaration);
@@ -1072,8 +1081,15 @@ public class Main {
             }
 
             if(operator.operation == UnaryOperator.Operation.DEREFERENCE){
-                PointerType pointer_type = (PointerType) ((VariableCall) operator.node).type;
-                type = pointer_type.type;
+                VariableCall call = (VariableCall) operator.node;
+                if(call.type instanceof Location){
+                    Location location = (Location) call.type;
+                    type = location.type;
+                }
+                else if (call.type instanceof PointerType){
+                    PointerType pointer = (PointerType) call.type;
+                    type = pointer.type;
+                }
             }
 
             if(operator.operation == UnaryOperator.Operation.REFERENCE){
@@ -1301,6 +1317,7 @@ public class Main {
         List<Node> program = parse_program(tokenizer);
         List<ProcedureDeclaration> procedures = new ArrayList<>();
         List<StructDeclaration> structs = new ArrayList<>();
+        structs.add(string);
 
         // external procedures
         for(Method method : ExternalProcedures.class.getDeclaredMethods()){
@@ -1311,7 +1328,13 @@ public class Main {
             for(Parameter parameter : method.getParameters()){
                 VariableDeclaration declaration = new VariableDeclaration();
                 declaration.name = parameter.getName();
-                declaration.type = convert_java_type(parameter.getType().getName());
+                String typename = parameter.getType().getName();
+                if(typename.equals("java.lang.String")){
+                    declaration.type = string;
+                }
+                else{
+                    declaration.type = convert_java_type(parameter.getType().getName());
+                }
                 external_procedure.inputs.add(declaration);
             }
             LiteralType return_type = convert_java_type(method.getReturnType().getName());
@@ -1378,5 +1401,27 @@ public class Main {
             int[] output = vm.run(bytecode);
             System.out.println("return code : " + output[0]); // return code
         }
+    }
+
+    static StructDeclaration string = string();
+
+    static StructDeclaration string(){
+        StructDeclaration string = new StructDeclaration();
+        string.name = "string";
+        string.body = new ArrayList<>(2);
+
+        VariableDeclaration pointer = new VariableDeclaration();
+        pointer.name = "data";
+        PointerType pointer_type = new PointerType();
+        pointer_type.type = LiteralType.INT();
+        pointer.type = pointer_type;
+        string.body.add(pointer);
+
+        VariableDeclaration length = new VariableDeclaration();
+        length.name = "length";
+        length.type = LiteralType.INT();
+        string.body.add(length);
+
+        return string;
     }
 }

@@ -3,6 +3,7 @@ Vector2 :: struct {
     x: float;
     y: float;
 }
+
 // vector 2 operators
 add :: (a: *Vector2, b: *Vector2) -> Vector2 { <-{ a.x + b.x, a.y + b.y }; }
 sub :: (a: *Vector2, b: *Vector2) -> Vector2 { <-{ a.x - b.x, a.y - b.y }; }
@@ -134,10 +135,24 @@ fibonacci :: (n: int) -> int {
     <- fibonacci(n - 1) + fibonacci(n - 2);
 }
 
-main :: () {
+compute_pi :: () -> float {
+    print("computing pi");
+    n := 1.0;
+    s := 1.0;
+    pi := 0.;
+    i := 0;
+    while i < 10000 {
+        pi = pi + 1. / (s * n);
+        n = n + 2.;
+        s = 0. - s;
+        i = i + 1;
+    }
+    <- pi * 4.;
+}
 
-    // arbitrary compile time code execution
-    print(#run(fibonacci(40)));
+main :: () {
+    print_float(#run compute_pi());
+    compute_pi();
 
     window_width := 1500;
     window_height := 1000;
@@ -150,7 +165,7 @@ main :: () {
 
     gravity: Vector2 = { 0. , 9.81 * 60. };
 
-    balls := #run get_balls();
+    balls := get_balls();
     environment: Circle = { { 500. , 500. }, 400. };
 
     start := time_seconds();
@@ -165,15 +180,15 @@ main :: () {
 
     while true {
         frames = frames + 1;
-        timer_update(&fps_timer, delta);
-        timer_update(&startup_timer, delta);
+        timer_update(fps_timer, delta);
+        timer_update(startup_timer, delta);
 
-        if timer_complete(&fps_timer) {
-            print(frames);
+        if timer_complete(fps_timer) {
+            print_int(frames);
             frames = 0;
         }
 
-        if timer_complete(&startup_timer){
+        if timer_complete(startup_timer){
             startup = false;
         }
 

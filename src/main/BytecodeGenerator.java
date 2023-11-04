@@ -6,6 +6,7 @@ import Bytecode.InstructionSet;
 import SyntaxNodes.*;
 
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.List;
 
@@ -34,6 +35,7 @@ public class BytecodeGenerator {
     class Context {
         Scope scope = new Scope();
         int stack_offset;
+        int constant_offset = 50000;
     }
 
     int[] generate_bytecode(List<Node> program){
@@ -182,8 +184,8 @@ public class BytecodeGenerator {
                 //                          e.g. time = get_time()
 
                 if(assign.value instanceof Literal){
-                    int value = 0;
                     if(type instanceof LiteralType){
+                        int value = 0;
                         LiteralType literal_type = (LiteralType)type;
                         switch (literal_type.type){
                             case INT -> {
@@ -199,11 +201,35 @@ public class BytecodeGenerator {
                                 value = bool_literal.value? 1 : 0;
                             }
                         }
+                        bytecode.add(ASSIGN_LITERAL.code());
+                        bytecode.add(memory_address);
+                        bytecode.add(value);
                     }
+                    else {
+                        Literal<String> literal = (Literal<String>)assign.value;
+                        String string = literal.value;
+                        StructDeclaration string_type = (StructDeclaration) type;
+                        bytecode.add(MEMSET.code());
+                        bytecode.add(context.constant_offset);
+                        bytecode.add(string.length());
+                        for(byte b : string.getBytes(StandardCharsets.UTF_8)){
+                            bytecode.add((int)b);
+                        }
 
-                    bytecode.add(ASSIGN_LITERAL.code());
-                    bytecode.add(memory_address);
-                    bytecode.add(value);
+                        // data
+                        int data_offset = get_field_offset(string_type, "data");
+                        bytecode.add(ASSIGN_LITERAL.code());
+                        bytecode.add(memory_address + data_offset);
+                        bytecode.add(context.constant_offset);
+
+                        // length
+                        int length_offset = get_field_offset(string_type, "length");
+                        bytecode.add(ASSIGN_LITERAL.code());
+                        bytecode.add(memory_address + length_offset);
+                        bytecode.add(string.length());
+
+                        context.constant_offset += string.length();
+                    }
                 }
                 else if(assign.value instanceof VariableCall){
                     VariableCall variable_call = (VariableCall) assign.value;

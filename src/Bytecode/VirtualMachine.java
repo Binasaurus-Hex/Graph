@@ -9,13 +9,14 @@ import java.lang.reflect.Parameter;
 public class VirtualMachine {
 
     Method[] external_procedures = Utils.get_external_procedures();
+    static int constant_block = 50000;
 
     public VirtualMachine(){
     }
 
     // returns the stack
     public int[] run(int[] program){
-        int[] stack = new int[100000];
+        int[] memory = new int[100000];
         int stack_pointer = 0;
         int base_pointer = 0;
         int program_counter = 0;
@@ -24,6 +25,10 @@ public class VirtualMachine {
 
         InstructionSet[] instructions = InstructionSet.values();
         while (program_counter < program.length) {
+            if(stack_pointer > constant_block){
+                System.out.println("stack overflow");
+                return null;
+            }
             if(stack_pointer > max_stack_ptr){
                 max_stack_ptr = stack_pointer;
             }
@@ -41,50 +46,58 @@ public class VirtualMachine {
                 case ASSIGN_LITERAL -> {
                     int to_memory = program[program_counter++];
                     int value = program[program_counter++];
-                    stack[base_pointer + to_memory] = value;
+                    memory[base_pointer + to_memory] = value;
                 }
                 case ASSIGN_RAW_DATA -> {
                     int to_memory = program[program_counter++];
                     int size = program[program_counter++];
                     for(int i = 0; i < size; i++){
-                        stack[base_pointer + to_memory + i] = program[program_counter++];
+                        memory[base_pointer + to_memory + i] = program[program_counter++];
                     }
                 }
+                case MEMSET -> {
+                    int to_memory = program[program_counter++];
+                    int size = program[program_counter++];
+                    for(int i = 0; i < size; i++){
+                        memory[to_memory + i] = program[program_counter++];
+                    }
+                }
+
                 case ASSIGN_MEMORY -> {
                     int to_memory = program[program_counter++];
                     int from_memory = program[program_counter++];
                     int size = program[program_counter++];
                     for(int i = 0; i < size; i++){
-                        int value = stack[base_pointer + from_memory + i];
-                        stack[base_pointer + to_memory + i] = value;
+                        int value = memory[base_pointer + from_memory + i];
+                        memory[base_pointer + to_memory + i] = value;
                     }
                 }
 
                 case ASSIGN_VAR_FROM_LOCATION -> {
                     int to_memory = program[program_counter++];
-                    int from_location = stack[base_pointer + program[program_counter++]];
+                    int from_location = memory[base_pointer + program[program_counter++]];
                     int size = program[program_counter++];
                     for(int i = 0; i < size; i++){
                         int addr = base_pointer + to_memory + i;
-                        stack[addr] = stack[from_location + i];
+                        memory[addr] = memory[from_location + i];
                     }
                 }
 
                 case ASSIGN_VAR_TO_LOCATION -> {
-                    int to_location = stack[base_pointer + program[program_counter++]];
+                    int to_location = memory[base_pointer + program[program_counter++]];
                     int from_memory = program[program_counter++];
                     int size = program[program_counter++];
                     for(int i = 0; i < size; i++){
-                        stack[to_location + i] = stack[base_pointer + from_memory + i];
+                        memory[to_location + i] = memory[base_pointer + from_memory + i];
                     }
                 }
 
                 case ASSIGN_TO_LOCATION_FROM_LOCATION -> {
-                    int to_location = stack[base_pointer + program[program_counter++]];
-                    int from_location = stack[base_pointer + program[program_counter++]];
+                    int to_location = memory[base_pointer + program[program_counter++]];
+                    int from_location = memory[base_pointer + program[program_counter++]];
                     int size = program[program_counter++];
                     for(int i = 0; i < size; i++){
-                        stack[to_location + i] = stack[from_location + i];
+                        memory[to_location + i] = memory[from_location + i];
                     }
                 }
 
@@ -92,8 +105,8 @@ public class VirtualMachine {
                     int memory_address = program[program_counter++];
                     int size = program[program_counter++];
                     for(int i = 0; i < size; i++){
-                        int value = stack[base_pointer + memory_address + i];
-                        stack[stack_pointer++] = value;
+                        int value = memory[base_pointer + memory_address + i];
+                        memory[stack_pointer++] = value;
                     }
                 }
 
@@ -102,7 +115,7 @@ public class VirtualMachine {
                     int size = program[program_counter++];
 
                     for(int i = 0; i < size; i++){
-                        stack[base_pointer + memory_address + i] = stack[stack_pointer - size + i];
+                        memory[base_pointer + memory_address + i] = memory[stack_pointer - size + i];
                     }
                     stack_pointer = stack_pointer - size;
                 }
@@ -110,54 +123,54 @@ public class VirtualMachine {
                 case ASSIGN_ADDRESS -> {
                     int memory_address = program[program_counter++];
                     int variable = program[program_counter++];
-                    stack[base_pointer + memory_address] = base_pointer + variable;
+                    memory[base_pointer + memory_address] = base_pointer + variable;
                 }
 
                 case ASSIGN_DEREFERENCE -> {
                     int memory_address = program[program_counter++];
                     int pointer = program[program_counter++];
-                    int value_address = stack[base_pointer + pointer];
-                    stack[base_pointer + memory_address] = stack[value_address];
+                    int value_address = memory[base_pointer + pointer];
+                    memory[base_pointer + memory_address] = memory[value_address];
                 }
 
                 case STRUCT_LOCATION -> {
                     int memory_address = program[program_counter++];
                     int struct = program[program_counter++];
                     int field = program[program_counter++];
-                    stack[base_pointer + memory_address] = base_pointer + struct + field;
+                    memory[base_pointer + memory_address] = base_pointer + struct + field;
                 }
 
                 case STRUCT_PTR_LOCATION -> {
                     int memory_address = program[program_counter++];
-                    int struct_ptr = stack[base_pointer + program[program_counter++]];
+                    int struct_ptr = memory[base_pointer + program[program_counter++]];
                     int field = program[program_counter++];
-                    stack[base_pointer + memory_address] = struct_ptr + field;
+                    memory[base_pointer + memory_address] = struct_ptr + field;
                 }
 
                 case ARRAY_LOCATION -> {
                     int memory_address = program[program_counter++];
                     int array = program[program_counter++];
-                    int index = stack[base_pointer + program[program_counter++]]; // read value of index
+                    int index = memory[base_pointer + program[program_counter++]]; // read value of index
                     int size = program[program_counter++];
 
-                    stack[base_pointer + memory_address] = base_pointer + array + index * size;
+                    memory[base_pointer + memory_address] = base_pointer + array + index * size;
                 }
 
                 case ARRAY_PTR_LOCATION -> {
                     int memory_address = program[program_counter++];
-                    int array_ptr = stack[base_pointer + program[program_counter++]];
-                    int index = stack[base_pointer + program[program_counter++]]; // read value of index
+                    int array_ptr = memory[base_pointer + program[program_counter++]];
+                    int index = memory[base_pointer + program[program_counter++]]; // read value of index
                     int size = program[program_counter++];
 
-                    stack[base_pointer + memory_address] = array_ptr + index * size;
+                    memory[base_pointer + memory_address] = array_ptr + index * size;
                 }
 
                 case ADD, SUBTRACT, MULTIPLY, DIVIDE, LESS_THAN, GREATER_THAN, EQUALS, AND, OR -> {
                     int storage_location = (int)program[program_counter++];
                     int mem_a = (int)program[program_counter++];
                     int mem_b = (int)program[program_counter++];
-                    int a = stack[base_pointer + mem_a];
-                    int b = stack[base_pointer + mem_b];
+                    int a = memory[base_pointer + mem_a];
+                    int b = memory[base_pointer + mem_b];
                     int result = switch (instruction){
                         case LESS_THAN -> a < b ? 1 : 0;
                         case GREATER_THAN -> a > b ? 1 : 0;
@@ -170,15 +183,15 @@ public class VirtualMachine {
                         case DIVIDE -> a / b;
                         default -> 0;
                     };
-                    stack[base_pointer + storage_location] = result;
+                    memory[base_pointer + storage_location] = result;
                 }
 
                 case FLOAT_ADD, FLOAT_SUBTRACT, FLOAT_MULTIPLY, FLOAT_DIVIDE, FLOAT_LESS_THAN, FLOAT_GREATER_THAN, FLOAT_EQUALS -> {
                     int storage_location = program[program_counter++];
                     int mem_a = program[program_counter++];
                     int mem_b = program[program_counter++];
-                    float a = Float.intBitsToFloat(stack[base_pointer + mem_a]);
-                    float b = Float.intBitsToFloat(stack[base_pointer + mem_b]);
+                    float a = Float.intBitsToFloat(memory[base_pointer + mem_a]);
+                    float b = Float.intBitsToFloat(memory[base_pointer + mem_b]);
                     float result = switch (instruction){
                         case FLOAT_LESS_THAN -> a < b ? 1 : 0;
                         case FLOAT_GREATER_THAN -> a > b ? 1 : 0;
@@ -194,31 +207,31 @@ public class VirtualMachine {
                         case FLOAT_LESS_THAN, FLOAT_GREATER_THAN, FLOAT_EQUALS -> true;
                         default -> false;
                     };
-                    stack[base_pointer + storage_location] = (!comparison)? Float.floatToIntBits(result) : (int)result;
+                    memory[base_pointer + storage_location] = (!comparison)? Float.floatToIntBits(result) : (int)result;
                 }
 
                 case RETURN -> {
                     int inputs_size = program[program_counter];
                     stack_pointer = base_pointer;
-                    int previous_base_ptr = stack[--stack_pointer];
-                    int return_location = stack[--stack_pointer];
+                    int previous_base_ptr = memory[--stack_pointer];
+                    int return_location = memory[--stack_pointer];
                     base_pointer = previous_base_ptr;
                     program_counter = return_location;
                     stack_pointer -= inputs_size;
                 }
 
                 case PROGRAM_EXIT -> {
-                    return stack;
+                    return memory;
                 }
 
                 case PROCEDURE_HEADER -> {
-                    stack[stack_pointer++] = base_pointer;
+                    memory[stack_pointer++] = base_pointer;
                     base_pointer = stack_pointer;
                 }
 
                 case CALL_PROCEDURE -> {
                     int procedure_location = program[program_counter++];
-                    stack[stack_pointer++] = program_counter; // where to return to
+                    memory[stack_pointer++] = program_counter; // where to return to
                     program_counter = procedure_location; // jump to function
                 }
 
@@ -229,14 +242,14 @@ public class VirtualMachine {
                 case JUMP_IF -> {
                     int location = program[program_counter++];
                     int boolean_address = program[program_counter++];
-                    if(stack[base_pointer + boolean_address] == 1){
+                    if(memory[base_pointer + boolean_address] == 1){
                         program_counter = location;
                     }
                 }
                 case JUMP_IF_NOT -> {
                     int location = program[program_counter++];
                     int boolean_address = program[program_counter++];
-                    if(stack[base_pointer + boolean_address] != 1){
+                    if(memory[base_pointer + boolean_address] != 1){
                         program_counter = location;
                     }
                 }
@@ -250,10 +263,13 @@ public class VirtualMachine {
                     int offset = stack_pointer;
                     for(int i = parameters.length - 1; i >= 0; i--){
                         Parameter parameter = parameters[i];
-                        int size = 1; // assumed
-                        offset -= size;
-                        int value = stack[offset];
                         String type = parameter.getType().getName();
+                        int size = 1; // assumed
+                        if(type.equals("java.lang.String")){
+                            size = 2;
+                        }
+                        offset -= size;
+                        int value = memory[offset];
                         switch (type){
                             case "int" ->{
                                 args[i] = value;
@@ -264,6 +280,15 @@ public class VirtualMachine {
                             case "float"->{
                                 args[i] = Float.intBitsToFloat(value);
                             }
+                            case "java.lang.String" -> {
+                                int pointer = memory[offset];
+                                int length = memory[offset + 1];
+                                char[] s_arr = new char[length];
+                                for(int j = 0; j < length; j++){
+                                    s_arr[j] = (char) memory[pointer + j];
+                                }
+                                args[i] = new String(s_arr);
+                            }
                         }
                     }
                     try {
@@ -273,15 +298,15 @@ public class VirtualMachine {
                         switch (return_type){
                             case "float" -> {
                                 Float double_result = (Float) result;
-                                stack[offset] = Float.floatToIntBits(double_result);
+                                memory[offset] = Float.floatToIntBits(double_result);
                             }
                             case "int" -> {
                                 int int_result = (Integer)result;
-                                stack[offset] = int_result;
+                                memory[offset] = int_result;
                             }
                             case "boolean" -> {
                                 int bool_result = ((Boolean)result)? 1 : 0;
-                                stack[offset] = bool_result;
+                                memory[offset] = bool_result;
                             }
                         }
                     } catch (IllegalAccessException e) {
@@ -294,6 +319,6 @@ public class VirtualMachine {
                 }
             }
         }
-        return stack;
+        return memory;
     }
 }

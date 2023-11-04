@@ -34,6 +34,7 @@ public enum InstructionSet {
     ASSIGN_LITERAL,
 
     ASSIGN_RAW_DATA,
+    MEMSET,
     ASSIGN_MEMORY,
     ASSIGN_POP,
     ASSIGN_ADDRESS,
