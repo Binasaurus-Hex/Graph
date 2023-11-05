@@ -1,26 +1,4 @@
-// basic structs
-Vector2 :: struct {
-    x: float;
-    y: float;
-}
-
-// vector 2 operators
-add :: (a: *Vector2, b: *Vector2) -> Vector2 { <-{ a.x + b.x, a.y + b.y }; }
-sub :: (a: *Vector2, b: *Vector2) -> Vector2 { <-{ a.x - b.x, a.y - b.y }; }
-mul :: (a: *Vector2, b: *Vector2) -> Vector2 { <-{ a.x * b.x, a.y * b.y }; }
-div :: (a: *Vector2, b: *Vector2) -> Vector2 { <-{ a.x / b.x, a.y / b.y }; }
-
-mul_s :: (a: *Vector2, s: float) -> Vector2 { <-{ a.x * s, a.y * s }; }
-div_s :: (a: *Vector2, s: float) -> Vector2 { <-{ a.x / s, a.y / s }; }
-
-length :: (v: *Vector2) -> float {
-    <- sqrt(v.x * v.x + v.y * v.y);
-}
-
-normalized :: (v: *Vector2) -> Vector2 {
-    size := length(v);
-    <- { v.x / size, v.y / size };
-}
+#import "vector2.graph";
 
 Vector2i :: struct {
     x: int;
@@ -151,8 +129,8 @@ compute_pi :: () -> float {
 }
 
 main :: () {
+
     print_float(#run compute_pi());
-    compute_pi();
 
     window_width := 1500;
     window_height := 1000;

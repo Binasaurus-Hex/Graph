@@ -26,6 +26,7 @@ variable declaration
 x := 2;
 y :int = 3;
 happy := false;
+name : string = "bob";
 ```
 
 vector length procedure
@@ -79,7 +80,7 @@ fibonacci :: (n: int) -> int {
 
 main :: () {
     // value is computed at compile time, then stored and printed like a contant at runtime
-    print(#run fibonacci(40));
+    print_int(#run fibonacci(40));
 }
 ```
 

@@ -296,6 +296,18 @@ public class Main {
                     run_directive.expression = parse_expression(tokenizer);
                     return run_directive;
                 }
+                if(text.equals("import")){
+                    ImportDirective import_directive = new ImportDirective();
+                    Node expression = parse_expression(tokenizer);
+                    if(expression instanceof Literal<?>){
+                        Literal<?> literal = (Literal<?>) expression;
+                        if(literal.value instanceof String){
+                            import_directive.name = (String) literal.value;
+                            return import_directive;
+                        }
+                    }
+                    Utils.print_token_error(tokenizer, "import directive only accepts a single string argument");
+                }
             }
         }
         return null;
@@ -436,9 +448,6 @@ public class Main {
                     case "float" -> literal.type = LiteralType.Type.FLOAT;
                     case "int" -> literal.type = LiteralType.Type.INT;
                     case "bool" -> literal.type = LiteralType.Type.BOOL;
-                    case "string" -> {
-                        StringType string_type = new StringType();
-                    }
                     default -> {
                         StructType struct = new StructType();
                         struct.name = text;
@@ -596,7 +605,19 @@ public class Main {
                 }
                 tokenizer.eat_token();
             }
-            statements.add(statement);
+            if(statement instanceof ImportDirective){
+                ImportDirective import_directive = (ImportDirective) statement;
+                String imported_text = read_file_as_text(import_directive.name);
+                List<Token> tokens = tokenize(imported_text);
+                Tokenizer import_tokenizer = new Tokenizer();
+                import_tokenizer.program_text = imported_text;
+                import_tokenizer.tokens = tokens;
+                List<Node> imported_statements = parse_program(import_tokenizer);
+                statements.addAll(imported_statements);
+            }
+            else{
+                statements.add(statement);
+            }
         }
         return statements;
     }
