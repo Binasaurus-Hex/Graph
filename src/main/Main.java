@@ -508,8 +508,14 @@ public class Main {
                         }
                         while (tokenizer.peek_token().type != Token.Type.OPEN_BRACE);
                     }
+                    if(tokenizer.peek_token().type == Token.Type.OPEN_BRACE){
+                        procedure.block = parse_block(tokenizer);
+                    }
+                    else{
+                        procedure.block = new ArrayList<>(); // inline procedure declaration
+                        procedure.block.add(parse_statement(tokenizer));
+                    }
 
-                    procedure.block = parse_block(tokenizer);
                     return procedure;
                 }
                 else{
