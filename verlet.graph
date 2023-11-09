@@ -84,8 +84,8 @@ collide :: (a: *Ball, b: *Ball){
     }
 }
 
-get_balls :: () -> [150]Ball {
-    balls: [150]Ball;
+get_balls :: () -> [120]Ball {
+    balls: [120]Ball;
     i := 1;
     row := 0;
     column := 0;
@@ -130,8 +130,6 @@ compute_pi :: () -> float {
 
 main :: () {
 
-    print_float(#run compute_pi());
-
     window_width := 1500;
     window_height := 1000;
 
@@ -141,9 +139,10 @@ main :: () {
     black:  Color = { 0., 0., 0., 1. };
     white:  Color = { 1., 1., 1., 1. };
 
-    gravity: Vector2 = { 0. , 9.81 * 60. };
+    gravity: Vector2 = { 0. , 9.81 * 10. };
 
-    balls := get_balls();
+    balls := #run get_balls();
+
     environment: Circle = { { 500. , 500. }, 400. };
 
     start := time_seconds();
@@ -153,20 +152,18 @@ main :: () {
     fps_timer := timer_start(1.0);
     fps_timer.looping = true;
 
-    startup_timer := timer_start(.5);
     startup := true;
 
     while true {
         frames = frames + 1;
         timer_update(fps_timer, delta);
-        timer_update(startup_timer, delta);
 
         if timer_complete(fps_timer) {
             print_int(frames);
             frames = 0;
         }
 
-        if timer_complete(startup_timer){
+        if mouse_down() {
             startup = false;
         }
 
@@ -190,13 +187,13 @@ main :: () {
 
             for ball in balls {
                 update_position(ball, delta);
-                constrain_to_circle(ball, &environment);
+                constrain_to_circle(ball, environment);
             }
 
-            for ball_a in balls {
-                for ball_b in balls {
-                  collide(ball_a, ball_b);
-                }
+        }
+        for ball_a in balls {
+            for ball_b in balls {
+              collide(ball_a, ball_b);
             }
         }
 

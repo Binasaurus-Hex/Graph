@@ -5,3 +5,4 @@ main.txt
 *.bytecode
 *.gitignore
 !verlet.graph
+!vector2.graph

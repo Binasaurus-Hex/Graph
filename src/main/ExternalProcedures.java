@@ -46,6 +46,8 @@ public class ExternalProcedures {
 
     static Point mouse_position = new Point();
 
+    static boolean mouse_down = false;
+
     static Color color = new Color(0, 0, 0, 1);
 
     public static void open_window(int width, int height){
@@ -81,6 +83,17 @@ public class ExternalProcedures {
             @Override
             public void mouseMoved(MouseEvent e) {
                 mouse_position = e.getPoint();
+            }
+        });
+        canvas.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                mouse_down = true;
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                mouse_down = false;
             }
         });
     }
@@ -135,7 +148,17 @@ public class ExternalProcedures {
         return mouse_position.y;
     }
 
+    public static boolean mouse_down() { return mouse_down; }
+
     public static float sqrt(float x){
         return (float) Math.sqrt(x);
+    }
+
+    public static void wait(float seconds){
+        try {
+            Thread.sleep((long) (seconds * 1000));
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

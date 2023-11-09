@@ -918,6 +918,10 @@ public class Main {
             }
 
             ProcedureDeclaration procedure_declaration = scope.find_procedure(procedure_call.name);
+            if(procedure_declaration == null){
+                System.out.println("unable to find procedure called " + procedure_call.name);
+                System.exit(1);
+            }
             procedure_call.external = procedure_declaration.external;
             procedure_call.procedure = procedure_declaration;
 
