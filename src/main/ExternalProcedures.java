@@ -10,19 +10,19 @@ import java.util.Map;
 public class ExternalProcedures {
 
     public static void print_int(int value){
-        System.out.println(value);
+        System.out.print(value);
     }
 
     public static void print(String value){
-        System.out.println(value);
+        System.out.print(value);
     }
 
     public static void print_float(float value){
-        System.out.println(value);
+        System.out.print(value);
     }
 
     public static void print_bool(boolean value){
-        System.out.println(value);
+        System.out.print(value);
     }
 
     public static float _float(int value){

@@ -187,13 +187,16 @@ public class BytecodeGenerator {
                     if(type instanceof LiteralType){
                         int value = 0;
                         LiteralType literal_type = (LiteralType)type;
+                        if(literal_type.type == null){
+                            System.out.println();
+                        }
                         switch (literal_type.type){
                             case INT -> {
                                 Literal<Integer> int_literal = (Literal<Integer>) assign.value;
                                 value = int_literal.value;
                             }
                             case FLOAT -> {
-                                Literal<Double> float_literal = (Literal<Double>) assign.value;
+                                Literal<Float> float_literal = (Literal<Float>) assign.value;
                                 value = Float.floatToIntBits(float_literal.value.floatValue());
                             }
                             case BOOL -> {

@@ -75,7 +75,7 @@ collide :: (a: *Ball, b: *Ball){
     axis := sub(a.position, b.position);
     distance := length(axis);
     total_radius := a.radius + b.radius;
-    if(distance < total_radius){
+    if distance < total_radius {
         normal := div_s(axis, distance);
         overlap : float = total_radius - distance;
         offset := mul_s(normal, .5 * overlap);
@@ -114,21 +114,28 @@ fibonacci :: (n: int) -> int {
 }
 
 compute_pi :: () -> float {
-    print("computing pi");
-    n := 1.0;
-    s := 1.0;
+    print("computing pi \n");
+    n := 1.;
+    s := 1.;
     pi := 0.;
     i := 0;
     while i < 10000 {
         pi = pi + 1. / (s * n);
         n = n + 2.;
-        s = 0. - s;
+        s = -s;
         i = i + 1;
     }
     <- pi * 4.;
 }
 
 main :: () {
+
+
+
+
+    pi := #run compute_pi();
+
+    print("pi = "); print_float(pi); print("\n");
 
     window_width := 1500;
     window_height := 1000;
@@ -139,7 +146,7 @@ main :: () {
     black:  Color = { 0., 0., 0., 1. };
     white:  Color = { 1., 1., 1., 1. };
 
-    gravity: Vector2 = { 0. , 9.81 * 10. };
+    gravity: Vector2 = { 0. , 9.81 * 80. };
 
     balls := #run get_balls();
 
@@ -159,7 +166,7 @@ main :: () {
         timer_update(fps_timer, delta);
 
         if timer_complete(fps_timer) {
-            print_int(frames);
+            print_int(frames); print("\n");
             frames = 0;
         }
 
@@ -179,23 +186,30 @@ main :: () {
         mouse_position := get_mouse_position();
         environment.centre = { float(mouse_position.x), float(mouse_position.y) };
 
-        // update
-        if startup == false {
-            for ball in balls {
-                accelerate(ball, gravity);
+        i := 0;
+        while i < 2 {
+
+            // update
+            if startup == false {
+                for ball in balls {
+                    accelerate(ball, gravity);
+                }
+
+                for ball in balls {
+                    update_position(ball, delta / 2.0);
+                    constrain_to_circle(ball, environment);
+                }
+
+            }
+            for ball_a in balls {
+                for ball_b in balls {
+                  collide(ball_a, ball_b);
+                }
             }
 
-            for ball in balls {
-                update_position(ball, delta);
-                constrain_to_circle(ball, environment);
-            }
+            i = i + 1;
+        }
 
-        }
-        for ball_a in balls {
-            for ball_b in balls {
-              collide(ball_a, ball_b);
-            }
-        }
 
         // render
         for ball in balls {

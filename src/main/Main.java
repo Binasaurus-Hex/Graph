@@ -47,7 +47,20 @@ public class Main {
     }
 
     static String get_string_text(String program_text, Token string){
-        return program_text.substring(string.index + 1, string.index + string.length - 1);
+        StringBuilder builder = new StringBuilder();
+        String s = program_text.substring(string.index + 1, string.index + string.length - 1);
+        char[] chars = s.toCharArray();
+        for(int i = 0; i < chars.length; i++){
+            char c = chars[i];
+            if(c == '\\'){
+                char escaped = chars[i + 1];
+                if(escaped == 'n') builder.append("\n");
+                i++;
+                continue;
+            }
+            builder.append(c);
+        }
+        return builder.toString();
     }
 
     static BinaryOperator.Operation to_binary_operation(Token op){
@@ -203,7 +216,7 @@ public class Main {
                         tokenizer.eat_token();
                         decimal = get_identifier_text(tokenizer.program_text, next_token);
                     }
-                    return new Literal<Double>(Double.parseDouble(whole+"."+decimal));
+                    return new Literal<Float>((float)Double.parseDouble(whole+"."+decimal));
                 }
                 return new Literal<Integer>(get_integer_value(tokenizer.program_text, int_token));
             }
@@ -213,7 +226,7 @@ public class Main {
                     tokenizer.eat_token(); // .
                     tokenizer.eat_token(); // INT
                     String decimal = get_identifier_text(tokenizer.program_text, number);
-                    return new Literal<Double>(Double.parseDouble("."+decimal));
+                    return new Literal<Float>((float)Double.parseDouble("."+decimal));
                 }
             }
             case STRING -> {
@@ -709,7 +722,7 @@ public class Main {
 
     static LiteralType get_type(Literal literal){
         LiteralType literal_type = new LiteralType();
-        if(literal.value instanceof Double){
+        if(literal.value instanceof Float){
             literal_type.type = LiteralType.Type.FLOAT;
         }
         if(literal.value instanceof Integer){
@@ -861,6 +874,11 @@ public class Main {
             VariableCall temp_struct_call = new VariableCall();
             temp_struct_call.name = temp_struct.name;
             temp_struct_call.type = temp_struct.type;
+
+            if(literal.arguments.size() != struct.body.size()){
+                System.out.println("error struct literal does not match size of struct");
+                System.exit(1);
+            }
 
             int i = 0;
             for(Node node : struct.body){
@@ -1107,6 +1125,7 @@ public class Main {
                         binary_operator.left = generate_variable_to(zero, generated_statements, op_type);
                     }
                 }
+                type = op_type;
                 binary_operator.right = operator.node;
                 expression = binary_operator;
             }
