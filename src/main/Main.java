@@ -849,6 +849,9 @@ public class Main {
 
         if(expression instanceof VariableCall){
             VariableCall variable_call = (VariableCall)expression;
+            if(variable_call.type != null){
+                return variable_call; // already typechecked
+            }
             VariableDeclaration declaration = scope.find_variable(variable_call.name);
             if(declaration == null){
                 System.out.println(String.format("error cant find variable %s", variable_call.name));

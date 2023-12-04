@@ -53,34 +53,34 @@ Ball :: struct {
 }
 
 accelerate :: (ball: *Ball, a: *Vector2){
-    ball.acceleration = add(ball.acceleration, a);
+    ball.acceleration = ball.acceleration + a;
 }
 
 update_position :: (ball: *Ball, delta: float){
-    velocity := sub(ball.position, ball.previous_position);
+    velocity := ball.position - ball.previous_position;
     ball.previous_position = ball.position;
-    ball.position = add(ball.position, add(velocity, mul_s(ball.acceleration, delta * delta)));
+    ball.position = ball.position + velocity + mul_s(ball.acceleration, delta * delta);
     ball.acceleration = { 0. , 0. };
 }
 
 constrain_to_circle :: (ball: *Ball, circle: *Circle){
-    displacement := sub(ball.position, circle.centre);
+    displacement := ball.position - circle.centre;
     if length(displacement) > circle.radius - ball.radius {
-        ball.position = add(circle.centre, mul_s(normalized(displacement), circle.radius - ball.radius));
+        ball.position = circle.centre + mul_s(normalized(displacement), circle.radius - ball.radius);
     }
 }
 
 collide :: (a: *Ball, b: *Ball){
     if a == b <-;
-    axis := sub(a.position, b.position);
+    axis := a.position - b.position;
     distance := length(axis);
     total_radius := a.radius + b.radius;
     if distance < total_radius {
         normal := div_s(axis, distance);
         overlap : float = total_radius - distance;
         offset := mul_s(normal, .5 * overlap);
-        a.position = add(a.position, offset);
-        b.position = sub(b.position, offset);
+        a.position = a.position + offset;
+        b.position = b.position - offset;
     }
 }
 
@@ -99,7 +99,7 @@ get_balls :: () -> [120]Ball {
         }
         ball.position = { 400. + float(column) * (ball.radius * 2.0 + spacing), 500. + float(row) * (ball.radius * 2.0 + spacing) };
         val: Vector2 = { .0001, .0001 };
-        ball.previous_position = add(ball.position, val);
+        ball.previous_position = ball.position + val;
         ball.acceleration = { 0., 9.81 };
         column = column + 1;
         i = i + 1;
@@ -129,9 +129,6 @@ compute_pi :: () -> float {
 }
 
 main :: () {
-
-
-
 
     pi := #run compute_pi();
 
