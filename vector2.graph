@@ -9,12 +9,6 @@ operator- :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x - b.x, a.y - b.y };
 operator* :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x * b.x, a.y * b.y };
 operator/ :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x / b.x, a.y / b.y };
 
-// vector 2 operators
-add :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x + b.x, a.y + b.y };
-sub :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x - b.x, a.y - b.y };
-mul :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x * b.x, a.y * b.y };
-div :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x / b.x, a.y / b.y };
-
 mul_s :: (a: *Vector2, s: float) -> Vector2 <-{ a.x * s, a.y * s };
 div_s :: (a: *Vector2, s: float) -> Vector2 <-{ a.x / s, a.y / s };
 
