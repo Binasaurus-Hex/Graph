@@ -4,6 +4,8 @@ Vector2 :: struct {
     y: float;
 }
 
+operator+ :: (a: *Vector2, b: *Vector2) -> Vector2 <- { a.x + b.x, a.y + b.y };
+
 // vector 2 operators
 add :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x + b.x, a.y + b.y };
 sub :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x - b.x, a.y - b.y };

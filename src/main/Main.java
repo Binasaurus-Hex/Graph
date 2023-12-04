@@ -482,6 +482,12 @@ public class Main {
 
     static Node parse_statement(Tokenizer tokenizer){
         Token name_or_keyword = tokenizer.peek_token();
+        if(name_or_keyword.type == Token.Type.OPERATOR){
+            tokenizer.eat_token();
+            name_or_keyword = tokenizer.peek_token();
+            name_or_keyword.type = Token.Type.IDENTIFIER;
+        }
+
         if(name_or_keyword.type == Token.Type.IDENTIFIER){
             String name = get_identifier_text(tokenizer.program_text, name_or_keyword);
             Token next_token = tokenizer.peek_token(2);
@@ -1045,6 +1051,39 @@ public class Main {
                     Location location = new Location();
                     location.type = type;
                     type = location;
+                }
+                case ADD, SUBTRACT, MULTIPLY, DIVIDE -> {
+                    Node typeof_left = left.type;
+                    Node typeof_right = right.type;
+                    if(typeof_left instanceof Location)typeof_left = ((Location) typeof_left).type;
+                    if(typeof_right instanceof Location)typeof_right = ((Location) typeof_right).type;
+
+                    if(typeof_left instanceof LiteralType && typeof_right instanceof LiteralType){
+                        if(left.type instanceof Location){
+                            Location location = (Location) left.type;
+                            operator.left = generate_variable_to(left, generated_statements, location.type);
+                            type = location.type;
+                        }
+                        if(right.type instanceof Location){
+                            Location location = (Location) right.type;
+                            operator.right = generate_variable_to(right, generated_statements, location.type);
+                        }
+                        break;
+                    }
+
+                    String operator_overload = switch (operator.operation){
+                        case ADD -> "+";
+                        case SUBTRACT -> "-";
+                        case MULTIPLY -> "*";
+                        case DIVIDE -> "/";
+                        default -> ""; // will cause error
+                    };
+                    ProcedureCall call = new ProcedureCall();
+                    call.name = operator_overload;
+                    call.inputs = new ArrayList<>(2);
+                    call.inputs.add(left);
+                    call.inputs.add(right);
+                    return flatten_expression(call, generated_statements, false, type, scope);
                 }
                 case INDEX -> {
                     Node array_type = left.type;

@@ -17,6 +17,7 @@ public class Token {
         put(Type.OR, "or");
         put(Type.IN, "in");
         put(Type.IS, "is");
+        put(Type.OPERATOR, "operator");
     }};
 
     public enum Type {
@@ -61,6 +62,8 @@ public class Token {
         INTEGER,
 
         // keywords
+
+        OPERATOR,
         STRUCT,
         WHILE,
         ELSE,
