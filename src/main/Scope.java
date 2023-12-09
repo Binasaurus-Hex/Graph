@@ -15,13 +15,14 @@ public class Scope {
     public Map<String, VariableDeclaration> variable_map = new HashMap<>();
     public List<StructDeclaration> structs = new ArrayList<>();
 
-    public ProcedureDeclaration find_procedure(String name){
+    public List<ProcedureDeclaration> find_procedures(String name){
+        List<ProcedureDeclaration> matches = new ArrayList<>();
         for(ProcedureDeclaration procedure : procedures){
             if(procedure.name.equals(name)){
-                return procedure;
+                matches.add(procedure);
             }
         }
-        return null;
+        return matches;
     }
 
     public VariableDeclaration find_variable(String name){

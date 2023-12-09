@@ -795,6 +795,37 @@ public class Main {
         return node;
     }
 
+    /*
+    when we do procedure type-checking these are the results where the two types can be coerced to match
+     */
+    enum ProcedureTypeCheckResult {
+        EQUAL,
+        LOCATION_POINTER_COERCE,
+        LOCATION_INSTANTIATE,
+        POINTER_REFERENCE,
+
+        NOT_EQUAL
+    }
+
+    static ProcedureTypeCheckResult procedure_input_typecheck(Node call_type, Node procedure_type){
+        if(types_equal(call_type, procedure_type)){
+            return ProcedureTypeCheckResult.EQUAL;
+        }
+        if(call_type instanceof Location){
+            Location location = (Location) call_type;
+            if(types_equal(location.type, procedure_type)) return ProcedureTypeCheckResult.LOCATION_INSTANTIATE;
+            if(procedure_type instanceof PointerType){
+                PointerType pointer = (PointerType) procedure_type;
+                if(types_equal(pointer.type, location.type)) return ProcedureTypeCheckResult.LOCATION_POINTER_COERCE;
+            }
+        }
+        if(procedure_type instanceof PointerType){
+            PointerType pointerType = (PointerType) procedure_type;
+            if(types_equal(pointerType.type, call_type)) return ProcedureTypeCheckResult.POINTER_REFERENCE;
+        }
+        return ProcedureTypeCheckResult.NOT_EQUAL;
+    }
+
     static Node flatten_expression(Node expression, List<Node> generated_statements, boolean top_level, Node type, Scope scope){
         if(expression instanceof RunDirective){
             RunDirective run_directive = (RunDirective) expression;
@@ -944,33 +975,57 @@ public class Main {
                 return generate_variable_to(size, generated_statements, null);
             }
 
-            ProcedureDeclaration procedure_declaration = scope.find_procedure(procedure_call.name);
-            if(procedure_declaration == null){
-                System.out.println("unable to find procedure called " + procedure_call.name);
-                System.exit(1);
+            List<ProcedureDeclaration> matching_procedures = scope.find_procedures(procedure_call.name);
+
+
+            List<VariableCall> flattened_inputs = new ArrayList<>(procedure_call.inputs.size());
+            for(Node input : procedure_call.inputs){
+                flattened_inputs.add((VariableCall) flatten_expression (input, generated_statements, false, null, scope));
             }
-            procedure_call.external = procedure_declaration.external;
-            procedure_call.procedure = procedure_declaration;
 
+            ProcedureDeclaration matching_procedure = null;
+            List<ProcedureTypeCheckResult> results = new ArrayList<>();
+
+            for(ProcedureDeclaration procedure : matching_procedures){
+                if(procedure.inputs.size() != flattened_inputs.size())continue;
+                results.clear();
+
+                for(int i = 0; i < procedure.inputs.size(); i++){
+                    VariableDeclaration procedure_input = (VariableDeclaration) procedure.inputs.get(i);
+                    VariableCall call_input = flattened_inputs.get(i);
+                    ProcedureTypeCheckResult result = procedure_input_typecheck(call_input.type, procedure_input.type);
+                    if(result == ProcedureTypeCheckResult.NOT_EQUAL)break;
+                    results.add(result);
+                }
+
+                if(results.size() == procedure.inputs.size()){
+                    matching_procedure = procedure;
+                    break;
+                }
+            }
+
+            if(matching_procedure == null){
+                System.out.println(String.format("procedure %s was not found", procedure_call.name));
+            }
+            procedure_call.procedure = matching_procedure;
+            procedure_call.external = matching_procedure.external;
+
+            // coerce inputs
             for(int i = 0; i < procedure_call.inputs.size(); i++){
-                VariableDeclaration input = (VariableDeclaration) procedure_declaration.inputs.get(i);
-                VariableCall flattened_input = (VariableCall) flatten_expression (procedure_call.inputs.get(i), generated_statements, false, input.type, scope);
-
-                // locations can be cast to either pointer or value
-                if(flattened_input.type instanceof Location){
-                    Location location = (Location) flattened_input.type;
-                    if(input.type instanceof PointerType){
+                VariableCall flattened_input = flattened_inputs.get(i);
+                ProcedureTypeCheckResult result = results.get(i);
+                switch (result){
+                    case LOCATION_POINTER_COERCE -> {
                         PointerType pointer = new PointerType();
+                        Location location = (Location)flattened_input.type;
                         pointer.type = location.type;
                         flattened_input.type = pointer;
                     }
-                    else{
+                    case LOCATION_INSTANTIATE -> {
+                        Location location = (Location)flattened_input.type;
                         flattened_input = generate_variable_to(flattened_input, generated_statements, location.type);
                     }
-                }
-                else{
-                    // for other types we do explicit reference
-                    if(input.type instanceof PointerType && !(flattened_input.type instanceof PointerType)){
+                    case POINTER_REFERENCE -> {
                         UnaryOperator reference = new UnaryOperator();
                         reference.operation = UnaryOperator.Operation.REFERENCE;
                         reference.node = flattened_input;
@@ -982,17 +1037,11 @@ public class Main {
                     }
                 }
 
-
-                if(!types_equal(input.type, flattened_input.type)){
-                    System.out.println(String.format("error type mismatch %s cannot be assigned to variable of type %s", input.name, type_to_string(flattened_input.type)));
-                    System.exit(0);
-                }
-
                 procedure_call.inputs.set(i, flattened_input);
             }
 
-            if(!(procedure_declaration.outputs == null || procedure_declaration.outputs.isEmpty())){
-                type = procedure_declaration.outputs.get(0); // TODO change for multiple return
+            if(!(matching_procedure.outputs == null || matching_procedure.outputs.isEmpty())){
+                type = matching_procedure.outputs.get(0); // TODO change for multiple return
             }
 
             if(!top_level){

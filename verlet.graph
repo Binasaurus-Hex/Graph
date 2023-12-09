@@ -57,7 +57,7 @@ accelerate :: (ball: *Ball, a: *Vector2){
 }
 
 update_position :: (ball: *Ball, delta: float){
-    velocity := ball.position - ball.previous_position;
+    velocity : Vector2 = ball.position - ball.previous_position;
     ball.previous_position = ball.position;
     ball.position = ball.position + velocity + mul_s(ball.acceleration, delta * delta);
     ball.acceleration = { 0. , 0. };
