@@ -808,9 +808,6 @@ public class Main {
     }
 
     static ProcedureTypeCheckResult procedure_input_typecheck(Node call_type, Node procedure_type){
-        if(types_equal(call_type, procedure_type)){
-            return ProcedureTypeCheckResult.EQUAL;
-        }
         if(call_type instanceof Location){
             Location location = (Location) call_type;
             if(types_equal(location.type, procedure_type)) return ProcedureTypeCheckResult.LOCATION_INSTANTIATE;
@@ -818,6 +815,9 @@ public class Main {
                 PointerType pointer = (PointerType) procedure_type;
                 if(types_equal(pointer.type, location.type)) return ProcedureTypeCheckResult.LOCATION_POINTER_COERCE;
             }
+        }
+        if(types_equal(call_type, procedure_type)){
+            return ProcedureTypeCheckResult.EQUAL;
         }
         if(procedure_type instanceof PointerType){
             PointerType pointerType = (PointerType) procedure_type;
