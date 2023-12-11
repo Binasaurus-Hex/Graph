@@ -16,9 +16,9 @@ public class BytecodeGenerator {
     Map<String, Boolean> external_returns = new HashMap<>();
 
     class ProcedureCallLocation {
-        String procedure;
+        ProcedureDeclaration procedure;
         int program_index;
-        public ProcedureCallLocation(String procedure, int program_index){
+        public ProcedureCallLocation(ProcedureDeclaration procedure, int program_index){
             this.procedure = procedure;
             this.program_index = program_index;
         }
@@ -28,8 +28,7 @@ public class BytecodeGenerator {
     class Scope {
         Map<String, Node> types = new HashMap<>();
         Map<String, Integer> locals = new HashMap<>(); // variable name to stack offset
-        Map<String, Integer> labels = new HashMap<>(); // function name to program index
-        Map<String, ProcedureDeclaration> procedures = new HashMap<>();
+        Map<ProcedureDeclaration, Integer> labels = new HashMap<>(); // function name to program index
     }
 
     class Context {
@@ -68,8 +67,7 @@ public class BytecodeGenerator {
             if(node instanceof ProcedureDeclaration){
                 ProcedureDeclaration procedure = (ProcedureDeclaration) node;
                 int program_line = bytecode.size();
-                global_scope.labels.put(procedure.name, program_line);
-                global_scope.procedures.put(procedure.name, procedure);
+                global_scope.labels.put(procedure, program_line);
                 Context context = new Context();
                 int input_offset = -2;
                 for(int i = procedure.inputs.size() - 1; i >= 0; i--){
@@ -88,7 +86,6 @@ public class BytecodeGenerator {
 
                 bytecode.add(PROCEDURE_HEADER.code());
                 context.scope.labels.putAll(global_context.scope.labels); // add all the current functions in
-                context.scope.procedures.putAll(global_context.scope.procedures);
                 bytecode.add(ALLOCATE.code());
                 int allocation_index = bytecode.size();
                 bytecode.add(0); // will be overwritten with actual stack size
@@ -441,7 +438,7 @@ public class BytecodeGenerator {
                 else{
                     bytecode.add(CALL_PROCEDURE.code());
                     int location = bytecode.size();
-                    function_call_locations.add(new ProcedureCallLocation(call.name, location));
+                    function_call_locations.add(new ProcedureCallLocation(call.procedure, location));
                     bytecode.add(-22);
                 }
             }
