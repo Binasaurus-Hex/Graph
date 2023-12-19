@@ -59,14 +59,14 @@ accelerate :: (ball: *Ball, a: *Vector2){
 update_position :: (ball: *Ball, delta: float){
     velocity : Vector2 = ball.position - ball.previous_position;
     ball.previous_position = ball.position;
-    ball.position = ball.position + velocity + mul_s(ball.acceleration, delta * delta);
+    ball.position = ball.position + velocity + ball.acceleration * (delta * delta);
     ball.acceleration = { 0. , 0. };
 }
 
 constrain_to_circle :: (ball: *Ball, circle: *Circle){
     displacement := ball.position - circle.centre;
     if length(displacement) > circle.radius - ball.radius {
-        ball.position = circle.centre + mul_s(normalized(displacement), circle.radius - ball.radius);
+        ball.position = circle.centre + normalized(displacement) * (circle.radius - ball.radius);
     }
 }
 
@@ -76,9 +76,9 @@ collide :: (a: *Ball, b: *Ball){
     distance := length(axis);
     total_radius := a.radius + b.radius;
     if distance < total_radius {
-        normal := div_s(axis, distance);
+        normal := axis / distance;
         overlap : float = total_radius - distance;
-        offset := mul_s(normal, .5 * overlap);
+        offset := normal * (.5 * overlap);
         a.position = a.position + offset;
         b.position = b.position - offset;
     }
@@ -107,14 +107,7 @@ get_balls :: () -> [120]Ball {
     <- balls;
 }
 
-fibonacci :: (n: int) -> int {
-    if n == 0 <- 0;
-    if n == 1 <- 1;
-    <- fibonacci(n - 1) + fibonacci(n - 2);
-}
-
 compute_pi :: () -> float {
-    print("computing pi \n");
     n := 1.;
     s := 1.;
     pi := 0.;
@@ -130,10 +123,6 @@ compute_pi :: () -> float {
 
 main :: () {
 
-    pi := #run compute_pi();
-
-    print("pi = "); print_float(pi); print("\n");
-
     window_width := 1500;
     window_height := 1000;
 
@@ -143,7 +132,7 @@ main :: () {
     black:  Color = { 0., 0., 0., 1. };
     white:  Color = { 1., 1., 1., 1. };
 
-    gravity: Vector2 = { 0. , 9.81 * 80. };
+    gravity: Vector2 = { 0. , 9.81 * 200. };
 
     balls := #run get_balls();
 

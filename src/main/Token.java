@@ -33,6 +33,8 @@ public class Token {
         PLUS("+"),
         FORWARD_SLASH("/"),
 
+        SUBSCRIPT("[]"),
+
         // punctuation
         OPEN_BRACKET("["),
         CLOSE_BRACKET("]"),

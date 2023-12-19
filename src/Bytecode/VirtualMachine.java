@@ -16,6 +16,7 @@ public class VirtualMachine {
 
     // returns the stack
     public int[] run(int[] program){
+
         int[] memory = new int[100000];
         int stack_pointer = 0;
         int base_pointer = 0;

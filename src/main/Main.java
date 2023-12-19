@@ -1,5 +1,6 @@
 package main;
 
+import Bytecode.AssemblyGenerator;
 import SyntaxNodes.*;
 import Bytecode.VirtualMachine;
 import java.io.IOException;
@@ -740,6 +741,18 @@ public class Main {
         return literal_type;
     }
 
+    static Node unwrap_type(Node type){
+        if(type instanceof Location){
+            Location location = (Location) type;
+            return location.type;
+        }
+        if(type instanceof PointerType){
+            PointerType pointer = (PointerType) type;
+            return pointer.type;
+        }
+        return type;
+    }
+
     static int generated_name_counter = 0;
 
     static String get_unique_name(){
@@ -1006,6 +1019,7 @@ public class Main {
 
             if(matching_procedure == null){
                 System.out.println(String.format("procedure %s was not found", procedure_call.name));
+                System.exit(1);
             }
             procedure_call.procedure = matching_procedure;
             procedure_call.external = matching_procedure.external;
@@ -1075,23 +1089,14 @@ public class Main {
 
             VariableCall right = (VariableCall) operator.right;
 
-            type = left.type;
-
             switch (operator.operation){
                 case DOT -> {
-                    Node struct_type = left.type;
-                    StructDeclaration struct;
-                    if(struct_type instanceof Location){
-                        Location location = (Location) struct_type;
-                        struct = (StructDeclaration) location.type;
+                    Node unwrapped_type = unwrap_type(left.type);
+                    if(!(unwrapped_type instanceof StructDeclaration)){
+                        System.out.println("cannot use dot operator on non struct value");
+                        System.exit(0);
                     }
-                    else if(struct_type instanceof PointerType){
-                        PointerType pointer = (PointerType) struct_type;
-                        struct = (StructDeclaration) pointer.type;
-                    }
-                    else{
-                        struct = (StructDeclaration) struct_type;
-                    }
+                    StructDeclaration struct = (StructDeclaration)unwrapped_type;
 
                     VariableCall field = (VariableCall) operator.right;
                     for(Node node : struct.body){
@@ -1111,6 +1116,7 @@ public class Main {
                     if(typeof_right instanceof Location)typeof_right = ((Location) typeof_right).type;
 
                     if(typeof_left instanceof LiteralType && typeof_right instanceof LiteralType){
+                        type = left.type;
                         if(left.type instanceof Location){
                             Location location = (Location) left.type;
                             operator.left = generate_variable_to(left, generated_statements, location.type);
@@ -1120,7 +1126,7 @@ public class Main {
                             Location location = (Location) right.type;
                             operator.right = generate_variable_to(right, generated_statements, location.type);
                         }
-                        break;
+                        return generate_variable_to(operator, generated_statements, type);
                     }
 
                     String operator_overload = switch (operator.operation){
@@ -1139,19 +1145,16 @@ public class Main {
                 }
                 case INDEX -> {
                     Node array_type = left.type;
-                    ArrayType array;
-                    if(array_type instanceof Location){
-                        Location location = (Location) array_type;
-                        array = (ArrayType) location.type;
+                    Node unwrapped_type = unwrap_type(array_type);
+                    if(!(unwrapped_type instanceof ArrayType)){
+                        ProcedureCall call = new ProcedureCall();
+                        call.name = "[]";
+                        call.inputs = new ArrayList<>(2);
+                        call.inputs.add(left);
+                        call.inputs.add(right);
+                        return flatten_expression(call, generated_statements, false, type, scope);
                     }
-                    else if(array_type instanceof PointerType){
-                        PointerType pointer = (PointerType) array_type;
-                        array = (ArrayType) pointer.type;
-                    }
-                    else {
-                        array = (ArrayType) array_type;
-                    }
-
+                    ArrayType array = (ArrayType)unwrapped_type;
                     type = array.type;
 
                     Location location = new Location();
@@ -1535,6 +1538,10 @@ public class Main {
 
         System.out.printf("file write :: %f seconds\n", (System.nanoTime() - stopMark) / 1e9);
         System.out.printf("compile took %f seconds\n", (System.nanoTime() - start) / 1e9);
+
+        String asm = AssemblyGenerator.assembly(bytecode, generator.global_scope.labels);
+
+        System.out.println(asm);
 
         if (args.length == 1)return;
         if(args[1].equals("-run") || args[1].equals("-r")){

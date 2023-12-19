@@ -15,9 +15,9 @@ public class BytecodeGenerator {
     Map<String, Integer> externals = new HashMap<>();
     Map<String, Boolean> external_returns = new HashMap<>();
 
-    class ProcedureCallLocation {
-        ProcedureDeclaration procedure;
-        int program_index;
+    public class ProcedureCallLocation {
+        public ProcedureDeclaration procedure;
+        public int program_index;
         public ProcedureCallLocation(ProcedureDeclaration procedure, int program_index){
             this.procedure = procedure;
             this.program_index = program_index;
@@ -37,10 +37,12 @@ public class BytecodeGenerator {
         int constant_offset = 50000;
     }
 
+    public Scope global_scope;
+
     int[] generate_bytecode(List<Node> program){
 
         Context global_context = new Context();
-        Scope global_scope = new Scope();
+        global_scope = new Scope();
         global_context.scope = global_scope;
 
         // declare externals
