@@ -51,7 +51,7 @@ public class AssemblyGenerator {
 
         InstructionSet[] instructions = InstructionSet.values();
         int index = 0;
-        while(index < program.length - 1) {
+        while(index < program.length) {
 
             for(Map.Entry<ProcedureDeclaration, Integer> label : labels.entrySet()){
                 if(label.getValue() == index){
@@ -222,14 +222,19 @@ public class AssemblyGenerator {
                 }
 
                 case RETURN -> {
-                    int inputs_size = program[index++];
+                    builder.append("mov rsp, rbp\n");
+                    builder.append("pop rbp\n");
+                    builder.append("ret\n");
                 }
 
+
                 case PROGRAM_EXIT -> {
+                    builder.append("ret\n");
                 }
 
                 case PROCEDURE_HEADER -> {
-
+                    builder.append("push rbp\n");
+                    builder.append("mov rbp, rsp\n");
                 }
 
                 case CALL_PROCEDURE -> {

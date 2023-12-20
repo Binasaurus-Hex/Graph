@@ -212,13 +212,11 @@ public class VirtualMachine {
                 }
 
                 case RETURN -> {
-                    int inputs_size = program[program_counter];
                     stack_pointer = base_pointer;
                     int previous_base_ptr = memory[--stack_pointer];
                     int return_location = memory[--stack_pointer];
                     base_pointer = previous_base_ptr;
                     program_counter = return_location;
-                    stack_pointer -= inputs_size;
                 }
 
                 case PROGRAM_EXIT -> {

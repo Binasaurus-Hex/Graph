@@ -425,12 +425,15 @@ public class BytecodeGenerator {
                     bytecode.add(1); // we only support single size returns from externals
                 }
 
+                int total_input_size = 0;
                 for(Node input : call.inputs){
                     VariableCall variable_call = (VariableCall) input; // assumed
 
                     bytecode.add(PUSH_MEMORY.code());
                     bytecode.add(context.scope.locals.get(variable_call.name));
-                    bytecode.add(get_size(variable_call.type));
+                    int size = get_size(variable_call.type);
+                    bytecode.add(size);
+                    total_input_size += size;
                 }
 
                 if(call.external){
@@ -442,6 +445,9 @@ public class BytecodeGenerator {
                     int location = bytecode.size();
                     function_call_locations.add(new ProcedureCallLocation(call.procedure, location));
                     bytecode.add(-22);
+
+                    bytecode.add(DEALLOCATE.code());
+                    bytecode.add(total_input_size);
                 }
             }
 
@@ -510,12 +516,6 @@ public class BytecodeGenerator {
                 bytecode.add(context.stack_offset);
 
                 bytecode.add(RETURN.code());
-                int inputs_size = 0;
-                for(Node input : return_statement.procedure.inputs){
-                    VariableDeclaration decl = (VariableDeclaration)input;
-                    inputs_size += get_size(decl.type);
-                }
-                bytecode.add(inputs_size);
             }
         }
     }
