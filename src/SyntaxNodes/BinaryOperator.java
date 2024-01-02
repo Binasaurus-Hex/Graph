@@ -2,6 +2,10 @@ package SyntaxNodes;
 
 public class BinaryOperator implements Node {
     public enum Operation {
+        INCREMENT,
+        DECREMENT,
+        MULTIPLIER,
+        DIVISOR,
         ASSIGN,
         AND,
         OR,
@@ -32,6 +36,23 @@ public class BinaryOperator implements Node {
             return switch (this){
                 case AND, OR -> true;
                 default -> false;
+            };
+        }
+
+        public boolean is_combined_assign(){
+            return switch (this){
+                case INCREMENT, DECREMENT, MULTIPLIER, DIVISOR -> true;
+                default -> false;
+            };
+        }
+
+        public Operation from_combined_assign(){
+            return switch (this){
+                case INCREMENT -> ADD;
+                case DECREMENT -> SUBTRACT;
+                case MULTIPLIER -> MULTIPLY;
+                case DIVISOR -> DIVIDE;
+                default -> null;
             };
         }
     }

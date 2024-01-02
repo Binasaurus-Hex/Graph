@@ -12,6 +12,10 @@ import java.util.List;
 
 public class BytecodeGenerator {
 
+    static int snap(int value, int increment){
+        return ((value/increment) + 1) * increment;
+    }
+
     Map<String, Integer> externals = new HashMap<>();
     Map<String, Boolean> external_returns = new HashMap<>();
 
@@ -94,6 +98,7 @@ public class BytecodeGenerator {
 
                 generate_bytecode(procedure.block, bytecode, context);
                 int stack_size = context.stack_offset;
+                stack_size = snap(stack_size, 8);
                 bytecode.set(allocation_index, stack_size);
 
                 // failsafe return

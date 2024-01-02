@@ -11,6 +11,39 @@ import java.util.Map;
 
 public class AssemblyGenerator {
 
+    static void print_float(StringBuilder builder){
+        builder.append("""
+print_float:
+  push    rbp
+  mov    rbp, rsp
+  sub    rsp, 32
+segment .data
+    .format db 'float is : %f', 0xa, 0
+segment .text
+    lea    rcx, [.format]
+    movss xmm1, xmm0
+    cvtss2sd    xmm1, xmm1
+    movq    rdx, xmm1
+    call    printf
+    leave
+    ret
+""");
+    }
+
+    static void program_header(StringBuilder builder){
+        builder.append("""
+default rel
+bits 64
+
+segment .text
+global main
+extern _CRT_INIT
+extern ExitProcess
+extern printf
+""");
+        print_float(builder);
+    }
+
     static void movsd(StringBuilder builder, String register, int memory_location){
         builder.append("movsd ");
         builder.append(register);
@@ -23,8 +56,8 @@ public class AssemblyGenerator {
         if(memory_location < 0){
             System.out.printf("");
         }
-        builder.append("[rbp - ");
-        builder.append(memory_location * 4);
+        builder.append("QWORD [rbp - ");
+        builder.append(memory_location * 8);
         builder.append("]");
     }
     static void movsd(StringBuilder builder, int memory_location, String register){
@@ -49,14 +82,20 @@ public class AssemblyGenerator {
     public static String assembly(int[] program, Map<ProcedureDeclaration, Integer> labels){
         StringBuilder builder = new StringBuilder();
 
+        program_header(builder);
+
         InstructionSet[] instructions = InstructionSet.values();
         int index = 0;
+        String current_label = null;
         while(index < program.length) {
 
             for(Map.Entry<ProcedureDeclaration, Integer> label : labels.entrySet()){
                 if(label.getValue() == index){
                     System.out.println();
-                    System.out.println(label.getKey().name);
+                    current_label = label.getKey().name;
+                    System.out.println(current_label);
+                    builder.append(current_label);
+                    builder.append(":\n");
                 }
             }
             System.out.print("\t");
@@ -110,9 +149,9 @@ public class AssemblyGenerator {
                     int size = program[index++];
                     for(int i = 0; i < size; i++){
                         builder.append("mov ");
-                        memory(builder, from_memory + i * 4);
+                        memory(builder, from_memory + i * 8);
                         builder.append(", ");
-                        memory(builder, to_memory + i * 4);
+                        memory(builder, to_memory + i * 8);
                         builder.append("\n");
                     }
                 }
@@ -138,11 +177,23 @@ public class AssemblyGenerator {
                 case PUSH_MEMORY -> {
                     int memory_address = program[index++];
                     int size = program[index++];
+                    size = ((size / 4) + 1) * 4;
+                    builder.append("movsd xmm1, QWORD[rbp - 16]\n");
+//                    for(int i = 0; i < size; i++){
+//                        builder.append("push ");
+//                        memory(builder, memory_address + i);
+//                        builder.append("\n");
+//                    }
                 }
 
                 case ASSIGN_POP -> {
                     int memory_address = program[index++];
                     int size = program[index++];
+                    for(int i = 0; i < size; i++){
+                        builder.append("pop ");
+                        memory(builder, memory_address + size - i);
+                        builder.append("\n");
+                    }
                 }
 
                 case ASSIGN_ADDRESS -> {
@@ -229,10 +280,14 @@ public class AssemblyGenerator {
 
 
                 case PROGRAM_EXIT -> {
-                    builder.append("ret\n");
+                    builder.append("xor rax, rax\n");
+                    builder.append("call ExitProcess\n");
                 }
 
                 case PROCEDURE_HEADER -> {
+                    if(current_label.equals("main")){
+                        builder.append("call _CRT_INIT\n");
+                    }
                     builder.append("push rbp\n");
                     builder.append("mov rbp, rsp\n");
                 }
@@ -242,14 +297,18 @@ public class AssemblyGenerator {
                     for(Map.Entry<ProcedureDeclaration, Integer> label : labels.entrySet()){
                         if(label.getValue() == procedure_location){
                             System.out.print(" " + label.getKey().name);
+                            builder.append("call ");
+                            builder.append(label.getKey().name);
+                            builder.append("\n");
                         }
                     }
                 }
 
                 case CALL_EXTERNAL -> {
-                    int external_location = program[index++];
-                    System.out.print(" " + external_procedures[external_location].getName());
-
+                    int external_location = program[index++];;
+                    builder.append("call ");
+                    builder.append(external_procedures[external_location].getName());
+                    builder.append("\n");
                 }
 
                 case JUMP -> {

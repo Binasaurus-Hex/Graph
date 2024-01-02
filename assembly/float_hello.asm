@@ -60,6 +60,8 @@ loop_start:
     jle loop_start
     call print_int
 
+    mov QWORD [rbp - 4], 102990
+
     movsd    xmm0, [a]             ; Load a
     movsd    xmm1, [b]             ; Load b
     vaddss    xmm2, xmm0, xmm1      ; xmm2 = xmm1 + xmm2

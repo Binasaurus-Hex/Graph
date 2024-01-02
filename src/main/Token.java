@@ -29,6 +29,11 @@ public class Token {
 
         BACK_ARROW("<-"),
         FORWARD_ARROW("->"),
+
+        INCREMENT("+="),
+        DECREMENT("-="),
+        MULTIPLIER("*="),
+        DIVISOR("/="),
         MINUS("-"),
         PLUS("+"),
         FORWARD_SLASH("/"),
@@ -113,7 +118,7 @@ public class Token {
 
     boolean is_binary_operator(){
         return switch (type){
-            case MINUS,PLUS,FORWARD_SLASH,STAR,DOUBLE_EQUALS,LESS_THAN,GREATER_THAN, DOT, EQUALS, OPEN_BRACKET, IN, AND, OR -> true;
+            case MINUS,PLUS,FORWARD_SLASH,STAR,DOUBLE_EQUALS,LESS_THAN,GREATER_THAN, DOT, EQUALS, OPEN_BRACKET, IN, AND, OR, INCREMENT, DECREMENT, MULTIPLIER, DIVISOR -> true;
             default -> false;
         };
     }

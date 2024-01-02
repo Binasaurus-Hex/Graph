@@ -3,7 +3,11 @@ package main;
 import Bytecode.AssemblyGenerator;
 import SyntaxNodes.*;
 import Bytecode.VirtualMachine;
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.nio.ByteBuffer;
@@ -80,6 +84,10 @@ public class Main {
             case IN:            return BinaryOperator.Operation.IN;
             case AND:           return BinaryOperator.Operation.AND;
             case OR:            return BinaryOperator.Operation.OR;
+            case INCREMENT:     return BinaryOperator.Operation.INCREMENT;
+            case DECREMENT:     return BinaryOperator.Operation.DECREMENT;
+            case MULTIPLIER:    return BinaryOperator.Operation.MULTIPLIER;
+            case DIVISOR:       return BinaryOperator.Operation.DIVISOR;
         }
         return null;
     }
@@ -360,6 +368,17 @@ public class Main {
 
             if (operator.operation.ordinal() < precedence) {
                 return operator.left;
+            }
+
+            if(operator.operation.is_combined_assign()){
+                BinaryOperator assign = new BinaryOperator();
+                assign.operation = BinaryOperator.Operation.ASSIGN;
+                assign.left = operator.left;
+
+                BinaryOperator math_op = new BinaryOperator();
+                math_op.operation = operator.operation.from_combined_assign();
+                math_op.left = operator.left;
+                
             }
 
             tokenizer.eat_token();
@@ -1541,7 +1560,21 @@ public class Main {
 
         String asm = AssemblyGenerator.assembly(bytecode, generator.global_scope.labels);
 
-        System.out.println(asm);
+        // write out the assembly
+        try {
+            if(false){
+                Files.write(Path.of("test.asm"), asm.getBytes());
+                Runtime runtime = Runtime.getRuntime();
+                Process assemble = runtime.exec("nasm -f win64 test.asm -o test.obj");
+                watch_error(assemble);
+                Process link = runtime.exec("link test.obj /subsystem:console /defaultlib:legacy_stdio_definitions.lib /defaultlib:msvcrt.lib /entry:main");
+                watch_output(link);
+                Process run = runtime.exec("test.exe");
+                watch_output(run);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         if (args.length == 1)return;
         if(args[1].equals("-run") || args[1].equals("-r")){
@@ -1571,5 +1604,25 @@ public class Main {
         string.body.add(length);
 
         return string;
+    }
+
+    static void watch_output(Process process){
+        watch(process.getInputStream());
+    }
+
+    static void watch_error(Process process){
+        watch(process.getErrorStream());
+    }
+
+    static void watch(InputStream stream){
+        BufferedReader input = new BufferedReader(new InputStreamReader(stream));
+        String line = null;
+        try {
+            while ((line = input.readLine()) != null) {
+                System.out.println(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
