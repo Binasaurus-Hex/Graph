@@ -19,6 +19,8 @@ Features :
 - ability to call out to java functions (limited to certain types)
 - abitrary compile time execution
 - now compiles to intermediate bytecode, and contains a virtual machine for running the bytecode.
+- operator overloading
+- procedure overloading (still a bit dodgy in places)
 
 # Examples
 
