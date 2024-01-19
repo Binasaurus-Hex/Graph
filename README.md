@@ -86,6 +86,12 @@ main :: () {
     print_int(#run fibonacci(40));
 }
 ```
+operator overloading
+```go
+operator+ :: (a: Vector2, b: Vector2) -> Vector2 {
+    <- { a.x + b.x , a.y + b.y };
+}
+```
 
 # Moving a square around the screen
 ```go
