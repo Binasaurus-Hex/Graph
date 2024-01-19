@@ -1,13 +1,14 @@
-# GraphJava
+# Graph
 
 ## Another simple programming language - this time in Java!?
 
 Another iteration of my language "Graph". now a lot more flexible and fully featured than the original C++ version
 
 Key goals :
-- lightning fast compile times
-- simple C like workflow, but with less awkwardness
-- minimal or zero dependencies
+- lightning fast compile times 🟢
+- simple C like workflow, but with less awkwardness 🟢
+- minimal or zero dependencies 🟢
+- a basic x64 compile target for runtime speed 🟠
 
 Features :
 - bool, float, and int types
