@@ -91,6 +91,12 @@ operator overloading
 operator+ :: (a: Vector2, b: Vector2) -> Vector2 {
     <- { a.x + b.x , a.y + b.y };
 }
+main :: (){
+    a: Vector2 = { 1.2 , 3.4 };
+    b: Vector2 = { .2 , .2 };
+    c := a + b;
+    print_float(c.x); print(" , "); print_float(c.y); // 1.4 , 3.6
+}
 ```
 
 # Moving a square around the screen
