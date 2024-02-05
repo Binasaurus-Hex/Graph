@@ -9,12 +9,14 @@ section '.text' code readable executable
   start:
   push rbp
   mov rbp, rsp
-	sub	rsp,8*4
+	sub	rsp,8*6
 
   mov rcx, 1.0
   mov rax, 3.0
-  movq xmm0, rcx
-  movq xmm1, rax
+  mov QWORD[rbp - 8], 1078774989
+  mov QWORD[rbp - 16], 1071040692
+  movq xmm0, [rbp - 8]
+  movq xmm1, [rbp - 16]
 
   addsd xmm0, xmm1
   movq [rsp + 4 * 8], xmm0

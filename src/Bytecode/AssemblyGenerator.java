@@ -1,17 +1,71 @@
 package Bytecode;
 
 import SyntaxNodes.ProcedureDeclaration;
-import main.BytecodeGenerator;
 import main.Utils;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class AssemblyGenerator {
 
-    static void print_float(StringBuilder builder){}
+    static class DLL_Import {
+        DLL_Import(String name, List<String> procedures){this.name = name; this.procedures = procedures;}
+        String name;
+        List<String> procedures;
+    }
+
+    static void declare_dlls(StringBuilder import_section, ArrayList<DLL_Import> dlls){
+        for(DLL_Import dll : dlls){
+            String name = dll.name.toLowerCase();
+            import_section.append(String.format("dd 0,0,0,RVA %s_name,RVA %s_table\n", name, name));
+        }
+        import_section.append("dd 0,0,0,0,0\n");
+
+        for(DLL_Import dll : dlls){
+            import_section.append(String.format("%s_table:\n", dll.name.toLowerCase()));
+            for(String procedure_name : dll.procedures){
+                import_section.append(String.format("%s dq RVA _%s\n", procedure_name, procedure_name));
+            }
+            import_section.append("dq 0\n");
+        }
+
+        for(DLL_Import dll: dlls){
+            import_section.append(String.format("%s_name db '%s',0\n", dll.name.toLowerCase(), dll.name));
+        }
+        for(DLL_Import dll : dlls){
+            for (String procedure_name : dll.procedures){
+                import_section.append(String.format("_%s dw 0\ndb '%s',0\n", procedure_name, procedure_name));
+            }
+        }
+    }
+
+    static void declare_print_float(StringBuilder builder){
+        builder.append("""
+                  print_float:
+                  push rbp
+                  mov rbp, rsp
+                  sub rsp, 4 * 8
+                  mov rcx, _float_format
+                  mov rdx, [rbp + 2 * 8]
+                  call [printf]
+                  leave
+                  ret
+                  """);
+    }
+
+    static void declare_print_int(StringBuilder builder){
+        builder.append("""
+                  print_int:
+                  push rbp
+                  mov rbp, rsp
+                  sub rsp, 4 * 8
+                  mov rcx, _int_format
+                  mov rdx, [rbp + 2 * 8]
+                  call [printf]
+                  leave
+                  ret
+                  """);
+    }
 
     static void program_header(StringBuilder builder){
         builder.append("""
@@ -57,17 +111,21 @@ section '.text' code readable executable""");
     static Method[] external_procedures = Utils.get_external_procedures();
 
     public static String assembly(int[] program, Map<ProcedureDeclaration, Integer> labels){
-        StringBuilder builder = new StringBuilder();
         StringBuilder program_text = new StringBuilder();
         program_text.append("format PE64\n");
         program_text.append("entry main\n");
 
         StringBuilder text_segment = new StringBuilder();
-        text_segment.append("section '.text' code readable executable");
+        text_segment.append("section '.text' code readable executable\n");
+        declare_print_float(text_segment);
+        declare_print_int(text_segment);
+
         StringBuilder data_segment = new StringBuilder();
-        data_segment.append("section '.data' data readable writeable");
+        data_segment.append("section '.data' data readable writeable\n");
+        data_segment.append("_float_format db 'the float is %f', 10,  0\n");
+        data_segment.append("_int_format db 'the int is %d', 10,  0\n");
         StringBuilder import_segment = new StringBuilder();
-        import_segment.append("section '.idata' import data readable writeable");
+        import_segment.append("section '.idata' import data readable writeable\n");
 
         InstructionSet[] instructions = InstructionSet.values();
         int index = 0;
@@ -79,7 +137,7 @@ section '.text' code readable executable""");
                     System.out.println();
                     current_label = label.getKey().name;
                     System.out.println(current_label);
-                    text_segment.append(current_label).append("\n");
+                    text_segment.append(current_label).append(":\n");
                 }
             }
             InstructionSet instruction = instructions[program[index++]];
@@ -160,22 +218,20 @@ section '.text' code readable executable""");
                 case PUSH_MEMORY -> {
                     int memory_address = program[index++];
                     int size = program[index++];
-                    size = ((size / 4) + 1) * 4;
-                    builder.append("movsd xmm1, QWORD[rbp - 16]\n");
-//                    for(int i = 0; i < size; i++){
-//                        builder.append("push ");
-//                        memory(builder, memory_address + i);
-//                        builder.append("\n");
-//                    }
+                    for(int i = 0; i < size; i++){
+                        text_segment.append("push ");
+                        memory(text_segment, memory_address + i);
+                        text_segment.append("\n");
+                    }
                 }
 
                 case ASSIGN_POP -> {
                     int memory_address = program[index++];
                     int size = program[index++];
                     for(int i = 0; i < size; i++){
-                        builder.append("pop ");
-                        memory(builder, memory_address + size - i);
-                        builder.append("\n");
+                        text_segment.append("pop ");
+                        memory(text_segment, memory_address + size - i);
+                        text_segment.append("\n");
                     }
                 }
 
@@ -219,12 +275,14 @@ section '.text' code readable executable""");
                     int storage_location = program[index++];
                     int mem_a = (int) program[index++];
                     int mem_b = (int) program[index++];
-                    builder.append("mov rax, ");
-                    memory(builder, mem_a);
-                    builder.append("]\n");
-                    builder.append("mov rbx, ");
-                    memory(builder, mem_b);
-                    builder.append("\n");
+
+                    text_segment.append("mov rax, ");
+                    memory(text_segment, mem_a);
+                    text_segment.append("\n");
+
+                    text_segment.append("mov rbx, ");
+                    memory(text_segment, mem_b);
+                    text_segment.append("\n");
 
                     String operation = switch (instruction){
                         case ADD -> "add";
@@ -234,45 +292,42 @@ section '.text' code readable executable""");
                         default -> "";
                     };
 
-                    builder.append(operation);
-                    builder.append(" rax, rbx\n");
+                    text_segment.append(operation);
+                    text_segment.append(" rax, rbx\n");
+                    text_segment.append("mov "); memory(text_segment, storage_location); text_segment.append(", rax\n");
                 }
 
                 case FLOAT_ADD, FLOAT_SUBTRACT, FLOAT_MULTIPLY, FLOAT_DIVIDE, FLOAT_LESS_THAN, FLOAT_GREATER_THAN, FLOAT_EQUALS -> {
                     int storage_location = program[index++];
                     int mem_a = program[index++];
                     int mem_b = program[index++];
-                    movsd(builder, "xmm0", mem_a);
-                    movsd(builder, "xmm1", mem_b);
+                    movsd(text_segment, "xmm0", mem_a);
+                    movsd(text_segment, "xmm1", mem_b);
                     String operation = switch (instruction){
-                        case FLOAT_ADD -> "vaddsd";
-                        case FLOAT_SUBTRACT -> "vsubsd";
-                        case FLOAT_MULTIPLY -> "vmulsd";
-                        case FLOAT_DIVIDE -> "vdivsd";
+                        case FLOAT_ADD -> "addsd";
+                        case FLOAT_SUBTRACT -> "subsd";
+                        case FLOAT_MULTIPLY -> "mulsd";
+                        case FLOAT_DIVIDE -> "divsd";
                         default -> "";
                     };
-                    float_op(builder, operation, "xmm0", "xmm1");
-                    movsd(builder, storage_location, "xmm0");
+                    float_op(text_segment, operation, "xmm0", "xmm1");
+                    movsd(text_segment, storage_location, "xmm0");
                 }
 
                 case RETURN -> {
-                    builder.append("mov rsp, rbp\n");
-                    builder.append("pop rbp\n");
-                    builder.append("ret\n");
+                    text_segment.append("leave\n");
+                    text_segment.append("ret\n");
                 }
 
 
                 case PROGRAM_EXIT -> {
-                    builder.append("xor rax, rax\n");
-                    builder.append("call ExitProcess\n");
+                    text_segment.append("xor rax, rax\n");
+                    text_segment.append("call ExitProcess\n");
                 }
 
                 case PROCEDURE_HEADER -> {
-                    if(current_label.equals("main")){
-                        builder.append("call _CRT_INIT\n");
-                    }
-                    builder.append("push rbp\n");
-                    builder.append("mov rbp, rsp\n");
+                    text_segment.append("push rbp\n");
+                    text_segment.append("mov rbp, rsp\n");
                 }
 
                 case CALL_PROCEDURE -> {
@@ -280,18 +335,18 @@ section '.text' code readable executable""");
                     for(Map.Entry<ProcedureDeclaration, Integer> label : labels.entrySet()){
                         if(label.getValue() == procedure_location){
                             System.out.print(" " + label.getKey().name);
-                            builder.append("call ");
-                            builder.append(label.getKey().name);
-                            builder.append("\n");
+                            text_segment.append("call ");
+                            text_segment.append(label.getKey().name);
+                            text_segment.append("\n");
                         }
                     }
                 }
 
                 case CALL_EXTERNAL -> {
                     int external_location = program[index++];;
-                    builder.append("call ");
-                    builder.append(external_procedures[external_location].getName());
-                    builder.append("\n");
+                    text_segment.append("call ");
+                    text_segment.append(external_procedures[external_location].getName());
+                    text_segment.append("\n");
                 }
 
                 case JUMP -> {
@@ -311,6 +366,16 @@ section '.text' code readable executable""");
             System.out.println();
         }
 
-        return builder.toString();
+        program_text.append(text_segment);
+        program_text.append(data_segment);
+
+        ArrayList<DLL_Import> dlls = new ArrayList<>();
+        dlls.add(new DLL_Import("KERNEL32.DLL", Arrays.asList("ExitProcess")));
+        dlls.add(new DLL_Import("MSVCRT.DLL", Arrays.asList("printf")));
+        declare_dlls(import_segment, dlls);
+
+        program_text.append(import_segment);
+
+        return program_text.toString();
     }
 }

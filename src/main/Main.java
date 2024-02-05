@@ -1562,16 +1562,12 @@ public class Main {
 
         // write out the assembly
         try {
-            if(false){
-                Files.write(Path.of("test.asm"), asm.getBytes());
+                Files.write(Path.of(String.format("assembly/%s.asm",program_name)), asm.getBytes());
                 Runtime runtime = Runtime.getRuntime();
-                Process assemble = runtime.exec("nasm -f win64 test.asm -o test.obj");
+                Process assemble = runtime.exec(String.format("./assembly/FASM assembly/%s.asm", program_name));
                 watch_error(assemble);
-                Process link = runtime.exec("link test.obj /subsystem:console /defaultlib:legacy_stdio_definitions.lib /defaultlib:msvcrt.lib /entry:main");
-                watch_output(link);
-                Process run = runtime.exec("test.exe");
+                Process run = runtime.exec(String.format("./assembly/%s.exe", program_name));
                 watch_output(run);
-            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
