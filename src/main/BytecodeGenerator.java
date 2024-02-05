@@ -98,7 +98,7 @@ public class BytecodeGenerator {
 
                 generate_bytecode(procedure.block, bytecode, context);
                 int stack_size = context.stack_offset;
-                stack_size = snap(stack_size, 8);
+                stack_size = snap(stack_size, 2);
                 bytecode.set(allocation_index, stack_size);
 
                 // failsafe return
@@ -161,6 +161,14 @@ public class BytecodeGenerator {
         System.out.println("couldn't find field " + field_name + " for " + struct.name);
         System.exit(0);
         return -1;
+    }
+
+    int get_procedure_call_padding(ProcedureCall call){
+        ProcedureDeclaration procedure = call.procedure;
+        int total_size = 0;
+        if(procedure.outputs != null) for(Node output: procedure.outputs)total_size += get_size(output);
+        for(Node input: procedure.inputs) total_size += get_size(((VariableDeclaration)input).type);
+        return total_size % 2;
     }
 
     void generate_bytecode(List<Node> program, List<Integer> bytecode, Context context){
@@ -411,11 +419,20 @@ public class BytecodeGenerator {
                     bytecode.add(ASSIGN_POP.code());
                     bytecode.add(memory_address);
                     bytecode.add(get_size(proc_call.procedure.outputs.get(0)));
+
+                    int padding = get_procedure_call_padding(proc_call);
+                    bytecode.add(DEALLOCATE.code());
+                    bytecode.add(padding);
                 }
             }
 
             if(node instanceof ProcedureCall){
                 ProcedureCall call = (ProcedureCall)node;
+
+                int padding = get_procedure_call_padding(call);
+                // padding
+                bytecode.add(ALLOCATE.code());
+                bytecode.add(padding);
 
                 if(!call.external){
                     ProcedureDeclaration procedure = call.procedure;
@@ -453,6 +470,10 @@ public class BytecodeGenerator {
 
                     bytecode.add(DEALLOCATE.code());
                     bytecode.add(total_input_size);
+                }
+                if(call.procedure.outputs == null){
+                    bytecode.add(DEALLOCATE.code());
+                    bytecode.add(padding);
                 }
             }
 

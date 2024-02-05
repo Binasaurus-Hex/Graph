@@ -11,37 +11,14 @@ import java.util.Map;
 
 public class AssemblyGenerator {
 
-    static void print_float(StringBuilder builder){
-        builder.append("""
-print_float:
-  push    rbp
-  mov    rbp, rsp
-  sub    rsp, 32
-segment .data
-    .format db 'float is : %f', 0xa, 0
-segment .text
-    lea    rcx, [.format]
-    movss xmm1, xmm0
-    cvtss2sd    xmm1, xmm1
-    movq    rdx, xmm1
-    call    printf
-    leave
-    ret
-""");
-    }
+    static void print_float(StringBuilder builder){}
 
     static void program_header(StringBuilder builder){
         builder.append("""
-default rel
-bits 64
-
-segment .text
-global main
-extern _CRT_INIT
-extern ExitProcess
-extern printf
-""");
-        print_float(builder);
+format PE64
+entry start
+                    
+section '.text' code readable executable""");
     }
 
     static void movsd(StringBuilder builder, String register, int memory_location){
@@ -81,8 +58,16 @@ extern printf
 
     public static String assembly(int[] program, Map<ProcedureDeclaration, Integer> labels){
         StringBuilder builder = new StringBuilder();
+        StringBuilder program_text = new StringBuilder();
+        program_text.append("format PE64\n");
+        program_text.append("entry main\n");
 
-        program_header(builder);
+        StringBuilder text_segment = new StringBuilder();
+        text_segment.append("section '.text' code readable executable");
+        StringBuilder data_segment = new StringBuilder();
+        data_segment.append("section '.data' data readable writeable");
+        StringBuilder import_segment = new StringBuilder();
+        import_segment.append("section '.idata' import data readable writeable");
 
         InstructionSet[] instructions = InstructionSet.values();
         int index = 0;
@@ -94,35 +79,33 @@ extern printf
                     System.out.println();
                     current_label = label.getKey().name;
                     System.out.println(current_label);
-                    builder.append(current_label);
-                    builder.append(":\n");
+                    text_segment.append(current_label).append("\n");
                 }
             }
-            System.out.print("\t");
             InstructionSet instruction = instructions[program[index++]];
             System.out.print(instruction.name());
 
             switch (instruction) {
                 case ALLOCATE -> {
                     int size = program[index++];
-                    builder.append("sub rsp, ");
-                    builder.append(size * 4);
-                    builder.append("\n");
+                    text_segment.append("sub rsp, ");
+                    text_segment.append(size * 8);
+                    text_segment.append("\n");
                 }
                 case DEALLOCATE -> {
                     int size = program[index++];
-                    builder.append("add rsp, ");
-                    builder.append(size * 4);
-                    builder.append("\n");
+                    text_segment.append("add rsp, ");
+                    text_segment.append(size * 8);
+                    text_segment.append("\n");
                 }
                 case ASSIGN_LITERAL -> {
                     int memory_address = program[index++];
                     int value = program[index++];
-                    builder.append("mov ");
-                    memory(builder, memory_address);
-                    builder.append(", ");
-                    builder.append(value);
-                    builder.append("\n");
+                    text_segment.append("mov ");
+                    memory(text_segment, memory_address);
+                    text_segment.append(", ");
+                    text_segment.append(value);
+                    text_segment.append("\n");
                 }
                 case ASSIGN_RAW_DATA -> {
                     int to_memory = program[index++];
@@ -148,11 +131,11 @@ extern printf
                     int from_memory = program[index++];
                     int size = program[index++];
                     for(int i = 0; i < size; i++){
-                        builder.append("mov ");
-                        memory(builder, from_memory + i * 8);
-                        builder.append(", ");
-                        memory(builder, to_memory + i * 8);
-                        builder.append("\n");
+                        text_segment.append("mov ");
+                        memory(text_segment, from_memory + i * 8);
+                        text_segment.append(", ");
+                        memory(text_segment, to_memory + i * 8);
+                        text_segment.append("\n");
                     }
                 }
 
