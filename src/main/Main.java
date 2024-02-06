@@ -1558,14 +1558,18 @@ public class Main {
         System.out.printf("file write :: %f seconds\n", (System.nanoTime() - stopMark) / 1e9);
         System.out.printf("compile took %f seconds\n", (System.nanoTime() - start) / 1e9);
 
+        stopMark = System.nanoTime();
         String asm = AssemblyGenerator.assembly(bytecode, generator.global_scope.labels);
+        System.out.printf("assembly generation :: %f seconds\n", (System.nanoTime() - stopMark) / 1e9);
 
         // write out the assembly
         try {
                 Files.write(Path.of(String.format("assembly/%s.asm",program_name)), asm.getBytes());
                 Runtime runtime = Runtime.getRuntime();
+                stopMark = System.nanoTime();
                 Process assemble = runtime.exec(String.format("./assembly/FASM assembly/%s.asm", program_name));
                 watch_error(assemble);
+                System.out.printf("assemble :: %f seconds\n", (System.nanoTime() - stopMark) / 1e9);
                 Process run = runtime.exec(String.format("./assembly/%s.exe", program_name));
                 watch_output(run);
         } catch (IOException e) {

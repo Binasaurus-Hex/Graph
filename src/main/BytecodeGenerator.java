@@ -98,7 +98,7 @@ public class BytecodeGenerator {
 
                 generate_bytecode(procedure.block, bytecode, context);
                 int stack_size = context.stack_offset;
-                stack_size = snap(stack_size, 2);
+                if(stack_size % 2 == 1) stack_size++;
                 bytecode.set(allocation_index, stack_size);
 
                 // failsafe return

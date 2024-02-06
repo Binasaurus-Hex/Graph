@@ -6,3 +6,4 @@ main.txt
 *.gitignore
 !verlet.graph
 !vector2.graph
+/assembly/*.asm

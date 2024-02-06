@@ -84,11 +84,8 @@ section '.text' code readable executable""");
     }
 
     static void memory(StringBuilder builder, int memory_location){
-        if(memory_location < 0){
-            System.out.printf("");
-        }
         builder.append("QWORD [rbp - ");
-        builder.append(memory_location * 8);
+        builder.append((memory_location + 1) * 8);
         builder.append("]");
     }
     static void movsd(StringBuilder builder, int memory_location, String register){
@@ -133,15 +130,12 @@ section '.text' code readable executable""");
         while(index < program.length) {
 
             for(Map.Entry<ProcedureDeclaration, Integer> label : labels.entrySet()){
-                if(label.getValue() == index){
-                    System.out.println();
+                if(label.getValue() == index){;
                     current_label = label.getKey().name;
-                    System.out.println(current_label);
                     text_segment.append(current_label).append(":\n");
                 }
             }
             InstructionSet instruction = instructions[program[index++]];
-            System.out.print(instruction.name());
 
             switch (instruction) {
                 case ALLOCATE -> {
@@ -168,10 +162,8 @@ section '.text' code readable executable""");
                 case ASSIGN_RAW_DATA -> {
                     int to_memory = program[index++];
                     int size = program[index++];
-                    System.out.printf("\n");
                     for(int i = 0; i < size; i++){
                         int a = program[index++];
-                        System.out.printf("mov [rbp - %d], %d\n", to_memory + i, a);
                     }
                     // memcpy
                 }
@@ -291,9 +283,16 @@ section '.text' code readable executable""");
                         case DIVIDE -> "idiv";
                         default -> "";
                     };
-
+                    if(instruction == InstructionSet.DIVIDE){
+                        text_segment.append("xor rdx, rdx\n");
+                    }
                     text_segment.append(operation);
-                    text_segment.append(" rax, rbx\n");
+                    if(instruction == InstructionSet.DIVIDE){
+                        text_segment.append(" rbx\n");
+                    }
+                    else{
+                        text_segment.append(" rax, rbx\n");
+                    }
                     text_segment.append("mov "); memory(text_segment, storage_location); text_segment.append(", rax\n");
                 }
 
@@ -334,7 +333,6 @@ section '.text' code readable executable""");
                     int procedure_location = program[index++];
                     for(Map.Entry<ProcedureDeclaration, Integer> label : labels.entrySet()){
                         if(label.getValue() == procedure_location){
-                            System.out.print(" " + label.getKey().name);
                             text_segment.append("call ");
                             text_segment.append(label.getKey().name);
                             text_segment.append("\n");
@@ -362,8 +360,6 @@ section '.text' code readable executable""");
                     int boolean_address = program[index++];
                 }
             }
-
-            System.out.println();
         }
 
         program_text.append(text_segment);
