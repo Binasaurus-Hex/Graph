@@ -119,8 +119,8 @@ section '.text' code readable executable""");
 
         StringBuilder data_segment = new StringBuilder();
         data_segment.append("section '.data' data readable writeable\n");
-        data_segment.append("_float_format db 'the float is %f', 10,  0\n");
-        data_segment.append("_int_format db 'the int is %d', 10,  0\n");
+        data_segment.append("_float_format db '%f',  0\n");
+        data_segment.append("_int_format db '%d',  0\n");
         StringBuilder import_segment = new StringBuilder();
         import_segment.append("section '.idata' import data readable writeable\n");
 

@@ -313,8 +313,6 @@ public class VirtualMachine {
                     } catch (InvocationTargetException e) {
                         e.printStackTrace();
                     }
-
-                    stack_pointer -= parameters.length; // size assumed 1
                 }
             }
         }

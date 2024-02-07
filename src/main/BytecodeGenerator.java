@@ -467,10 +467,11 @@ public class BytecodeGenerator {
                     int location = bytecode.size();
                     function_call_locations.add(new ProcedureCallLocation(call.procedure, location));
                     bytecode.add(-22);
-
-                    bytecode.add(DEALLOCATE.code());
-                    bytecode.add(total_input_size);
                 }
+
+                bytecode.add(DEALLOCATE.code());
+                bytecode.add(total_input_size);
+
                 if(call.procedure.outputs == null){
                     bytecode.add(DEALLOCATE.code());
                     bytecode.add(padding);
