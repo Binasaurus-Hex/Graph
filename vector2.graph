@@ -40,7 +40,3 @@ operator* :: (a: string, b: int) -> string {
     }
     <- "";
 }
-
-main :: (){
-    "hello" * 10 * 10;
-}
