@@ -61,7 +61,6 @@ public class BytecodeGenerator {
                 external_returns.put(name, true);
             }
         }
-
         List<Integer> bytecode = new ArrayList<>();
 
         Node main_call = program.remove(program.size() - 1);
@@ -421,8 +420,10 @@ public class BytecodeGenerator {
                     bytecode.add(get_size(proc_call.procedure.outputs.get(0)));
 
                     int padding = get_procedure_call_padding(proc_call);
-                    bytecode.add(DEALLOCATE.code());
-                    bytecode.add(padding);
+                    if (padding > 0) {
+                        bytecode.add(DEALLOCATE.code());
+                        bytecode.add(padding);
+                    }
                 }
             }
 
@@ -431,8 +432,10 @@ public class BytecodeGenerator {
 
                 int padding = get_procedure_call_padding(call);
                 // padding
-                bytecode.add(ALLOCATE.code());
-                bytecode.add(padding);
+                if(padding > 0){
+                    bytecode.add(ALLOCATE.code());
+                    bytecode.add(padding);
+                }
 
                 if(!call.external){
                     ProcedureDeclaration procedure = call.procedure;
@@ -469,12 +472,16 @@ public class BytecodeGenerator {
                     bytecode.add(-22);
                 }
 
-                bytecode.add(DEALLOCATE.code());
-                bytecode.add(total_input_size);
+                if(total_input_size > 0){
+                    bytecode.add(DEALLOCATE.code());
+                    bytecode.add(total_input_size);
+                }
 
                 if(call.procedure.outputs == null){
-                    bytecode.add(DEALLOCATE.code());
-                    bytecode.add(padding);
+                    if(padding > 0){
+                        bytecode.add(DEALLOCATE.code());
+                        bytecode.add(padding);
+                    }
                 }
             }
 

@@ -4,7 +4,12 @@ Vector2 :: struct {
     y: float;
 }
 
-operator+ :: (a: *Vector2, b: *Vector2) -> Vector2 <- { a.x + b.x, a.y + b.y };
+Vector2i :: struct {
+    x: int;
+    y: int;
+}
+
+operator+ :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x + b.x, a.y + b.y };
 operator- :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x - b.x, a.y - b.y };
 operator* :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x * b.x, a.y * b.y };
 operator/ :: (a: *Vector2, b: *Vector2) -> Vector2 <-{ a.x / b.x, a.y / b.y };
@@ -25,4 +30,17 @@ print :: (v: *Vector2){
 
 println :: (v: *Vector2){
     print(v); print("\n");
+}
+
+operator* :: (a: string, b: int) -> string {
+    i := 0;
+    while i < b {
+        print(a);
+        i = i + 1;
+    }
+    <- "";
+}
+
+main :: (){
+    "hello" * 10 * 10;
 }

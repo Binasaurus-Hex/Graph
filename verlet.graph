@@ -1,10 +1,5 @@
 #import "vector2.graph";
 
-Vector2i :: struct {
-    x: int;
-    y: int;
-}
-
 Timer :: struct {
     elapsed: float;
     time: float;
@@ -84,8 +79,8 @@ collide :: (a: *Ball, b: *Ball){
     }
 }
 
-get_balls :: () -> [120]Ball {
-    balls: [120]Ball;
+get_balls :: () -> [150]Ball {
+    balls: [150]Ball;
     i := 1;
     row := 0;
     column := 0;
@@ -172,29 +167,25 @@ main :: () {
         mouse_position := get_mouse_position();
         environment.centre = { float(mouse_position.x), float(mouse_position.y) };
 
-        i := 0;
-        while i < 2 {
 
-            // update
-            if startup == false {
-                for ball in balls {
-                    accelerate(ball, gravity);
-                }
-
-                for ball in balls {
-                    update_position(ball, delta / 2.0);
-                    constrain_to_circle(ball, environment);
-                }
-
-            }
-            for ball_a in balls {
-                for ball_b in balls {
-                  collide(ball_a, ball_b);
-                }
+        // update
+        if startup == false {
+            for ball in balls {
+                accelerate(ball, gravity);
             }
 
-            i = i + 1;
+            for ball in balls {
+                update_position(ball, delta);
+                constrain_to_circle(ball, environment);
+            }
+
         }
+        for ball_a in balls {
+            for ball_b in balls {
+              collide(ball_a, ball_b);
+            }
+        }
+
 
 
         // render

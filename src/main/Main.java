@@ -1579,10 +1579,30 @@ public class Main {
         }
 
         if (args.length == 1)return;
+        Process cvm = null;
+
+        boolean use_cvm = true;
+
+
         if(args[1].equals("-run") || args[1].equals("-r")){
-            VirtualMachine vm = new VirtualMachine();
-            int[] output = vm.run(bytecode);
-            System.out.println("return code : " + output[0]); // return code
+            if(use_cvm){
+                Runtime runtime = Runtime.getRuntime();
+                try {
+                    cvm = runtime.exec(String.format("./CVM.exe %s.bytecode", program_name));
+                    Process finalCvm = cvm;
+                    Runtime.getRuntime().addShutdownHook(new Thread(()->{
+                        finalCvm.destroy();
+                    }));
+                    watch_output(cvm);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            else{
+                VirtualMachine vm = new VirtualMachine();
+                int[] output = vm.run(bytecode);
+                System.out.println("return code : " + output[0]); // return code
+            }
         }
     }
 
